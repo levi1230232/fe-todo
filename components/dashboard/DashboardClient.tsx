@@ -109,33 +109,48 @@ export default function DashboardClient() {
   const completedTasksByDate = useMemo(() => {
     if (!myTasks) return [];
 
-    const dateCounts: Record<string, number> = {};
+    const dateCounts: Record<string, { count: number; date: Date }> = {};
+
+    const now = new Date();
+    const oneMonthAgo = new Date(now);
+    oneMonthAgo.setMonth(now.getMonth() - 1);
 
     myTasks.forEach((task: Task) => {
-      const isCompleted = task.status === "COMPLETED";
+      if (task.status !== "COMPLETED") return;
 
-      if (isCompleted) {
-        const dateStr = task.updatedAt || task.createdAt;
-        if (dateStr) {
-          const formattedDate = new Date(dateStr).toLocaleDateString("vi-VN", {
-            day: "2-digit",
-            month: "2-digit",
-          });
-          dateCounts[formattedDate] = (dateCounts[formattedDate] || 0) + 1;
-        }
+      const dateStr = task.updatedAt || task.createdAt;
+      if (!dateStr) return;
+
+      const taskDate = new Date(dateStr);
+
+      if (taskDate < oneMonthAgo || taskDate > now) return;
+
+      const formattedDate = taskDate.toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+      });
+
+      if (!dateCounts[formattedDate]) {
+        dateCounts[formattedDate] = {
+          count: 0,
+          date: taskDate,
+        };
       }
+
+      dateCounts[formattedDate].count++;
     });
 
     return Object.entries(dateCounts)
-      .map(([date, count]) => ({ date, count }))
-      .sort((a, b) => {
-        const [dayA, monthA] = a.date.split("/").map(Number);
-        const [dayB, monthB] = b.date.split("/").map(Number);
-        return (
-          new Date(2026, monthA - 1, dayA).getTime() -
-          new Date(2026, monthB - 1, dayB).getTime()
-        );
-      });
+      .map(([date, { count, date: sortDate }]) => ({
+        date,
+        count,
+        sortDate,
+      }))
+      .sort((a, b) => a.sortDate.getTime() - b.sortDate.getTime())
+      .map(({ date, count }) => ({
+        date,
+        count,
+      }));
   }, [myTasks]);
 
   if (isUserLoading) {

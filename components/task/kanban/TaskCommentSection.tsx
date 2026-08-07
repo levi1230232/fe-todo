@@ -6,11 +6,13 @@ import { useComment } from "@/hooks/useComment";
 interface TaskCommentSectionProps {
   taskId: number;
   currentUserId?: number;
+  currentRole: "OWNER" | "ADMIN" | "MEMBER" | string;
 }
 
 export function TaskCommentSection({
   taskId,
   currentUserId,
+  currentRole,
 }: TaskCommentSectionProps) {
   const [content, setContent] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
@@ -167,7 +169,9 @@ export function TaskCommentSection({
                               Edit
                             </button>
                           )}
-                          {isOwner && (
+                          {(isOwner ||
+                            currentRole === "ADMIN" ||
+                            currentRole === "OWNER") && (
                             <button
                               type="button"
                               onClick={() => handleDelete(comment.id)}

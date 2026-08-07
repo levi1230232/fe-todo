@@ -112,7 +112,7 @@ export const NotificationDetailModal: React.FC<
             onClick={onClose}
             className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
           >
-            Đóng
+            Close
           </button>
         </div>
       </div>

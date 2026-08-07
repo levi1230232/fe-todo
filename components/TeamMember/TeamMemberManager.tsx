@@ -52,8 +52,7 @@ export function TeamMemberManager({
     (m) => String(m.user.id) === String(currentUser?.id),
   );
 
-  const canManage =
-    currentMember?.role === "OWNER" || currentMember?.role === "ADMIN";
+  const canManage = currentMember?.role === "OWNER";
 
   const isOwner = currentMember?.role === "OWNER";
   const isMemberOfTeam = !!currentMember;
@@ -108,7 +107,6 @@ export function TeamMemberManager({
           onCancel={() => setIsAddingMember(false)}
         />
       )}
-      {/* {JSON.stringify(isOwner)} */}
       {isLoading ? (
         <div className="flex items-center justify-center py-6 text-slate-400">
           <Loader2 size={20} className="animate-spin mr-2" />

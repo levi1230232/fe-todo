@@ -81,7 +81,7 @@ export default function TaskList({
                 </p>
                 {task.dueTo && (
                   <p className="text-xs text-slate-400">
-                    Hạn: {new Date(task.dueTo).toLocaleDateString("vi-VN")}
+                    Due to: {new Date(task.dueTo).toLocaleDateString("vi-VN")}
                   </p>
                 )}
               </div>

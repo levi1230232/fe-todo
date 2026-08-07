@@ -4,15 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { Task, TaskStatus, Priority } from "@/types/task";
-import {
-  Calendar,
-  Trash2,
-  UserCheck,
-  Check,
-  X,
-  User,
-  Archive,
-} from "lucide-react";
+import { Calendar, Trash2, UserCheck, Check, X, User } from "lucide-react";
 import { TeamMember } from "./types";
 import { useUser } from "@/hooks/useAuth";
 import { useSearchParams } from "next/navigation";
@@ -236,6 +228,7 @@ export function TaskCardContent({
           <h3 className="font-semibold text-slate-800 text-sm line-clamp-2 leading-snug">
             {task.title}
           </h3>
+
           {task.description && (
             <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
               {task.description}
@@ -266,15 +259,15 @@ export function TaskCardContent({
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        {!isEditingDate && (
-          <div className="flex-shrink-0">
-            {isAssigning ? (
+        {task.workspaceStyle === "TEAM" && (
+          <div className="shrink-0">
+            {isAssigning && canDelete ? (
               <div className="flex items-center gap-1">
                 <select
                   defaultValue={task.assignedTo || ""}
                   onChange={(e) => handleAssignUser(Number(e.target.value))}
                   disabled={assignTaskMutation.isPending}
-                  className="text-[11px] p-1 border rounded bg-white text-slate-700 outline-none focus:border-indigo-500 max-w-[110px]"
+                  className="text-[11px] p-1 border rounded bg-white text-slate-700 outline-none focus:border-indigo-500 max-w-[100px]"
                 >
                   <option value="" disabled>
                     Chọn...
@@ -299,7 +292,12 @@ export function TaskCardContent({
               </div>
             ) : (
               <div
-                onClick={() => setIsAssigning(true)}
+                onClick={() => {
+                  if (canDelete) {
+                    setIsEditingDate(false);
+                    setIsAssigning(true);
+                  }
+                }}
                 className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-100 p-1 rounded-md transition-colors"
                 title="Change assignee"
               >
@@ -310,7 +308,7 @@ export function TaskCardContent({
                     <User className="w-3 h-3 text-indigo-600" />
                   )}
                 </div>
-                <span className="text-[11px] truncate max-w-[80px]">
+                <span className="text-[11px] truncate max-w-[70px]">
                   {assignee?.user?.name ?? "Unassign"}
                 </span>
               </div>
@@ -318,47 +316,47 @@ export function TaskCardContent({
           </div>
         )}
 
-        <div
-          className={`flex-1 flex justify-end ${isEditingDate ? "w-full" : ""}`}
-        >
-          {isEditingDate ? (
+        <div className="flex-1 flex justify-end min-w-0">
+          {isEditingDate && canDelete ? (
             <form
               onSubmit={handleSubmit(onSaveDeadline)}
-              className="flex items-center gap-1 w-full"
+              className="flex items-center gap-1 min-w-0 w-full justify-end"
             >
               <input
                 type="datetime-local"
                 min={minDateTime}
                 {...register("dueTo")}
-                className="text-[11px] px-1.5 py-1 border rounded bg-white text-slate-700 outline-none focus:border-indigo-500 w-full min-w-0"
+                className="text-[10px] px-1 py-0.5 border rounded bg-white text-slate-700 outline-none focus:border-indigo-500 w-full max-w-[130px] min-w-0"
               />
               <button
                 type="submit"
                 disabled={changeDeadlineMutation.isPending}
-                className="p-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 flex-shrink-0"
+                className="p-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 shrink-0"
                 title="Save"
               >
-                <Check className="w-3.5 h-3.5" />
+                <Check className="w-3 h-3" />
               </button>
               <button
                 type="button"
                 onClick={() => setIsEditingDate(false)}
-                className="p-1 rounded bg-slate-200 text-slate-600 hover:bg-slate-300 flex-shrink-0"
-                title="Hủy"
+                className="p-1 rounded bg-slate-200 text-slate-600 hover:bg-slate-300 shrink-0"
+                title="Cancel"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3 h-3" />
               </button>
             </form>
           ) : (
             <div
               onClick={() => {
-                setIsAssigning(false);
-                setIsEditingDate(true);
+                if (canDelete) {
+                  setIsAssigning(false);
+                  setIsEditingDate(true);
+                }
               }}
               className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/60 px-1.5 py-1 rounded transition-colors cursor-pointer group/date truncate"
               title="Click to edit deadline"
             >
-              <Calendar className="w-3.5 h-3.5 group-hover/date:text-indigo-600 flex-shrink-0" />
+              <Calendar className="w-3.5 h-3.5 group-hover/date:text-indigo-600 shrink-0" />
               <span className="truncate">
                 {formattedDueDate || "Thêm deadline"}
               </span>

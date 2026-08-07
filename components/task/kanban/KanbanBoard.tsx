@@ -397,7 +397,7 @@ export default function KanbanBoard({
   if (isLoading) {
     return (
       <div className="p-8 text-center text-slate-500 font-medium">
-        Đang tải bảng Kanban...
+        Loading Kanban board...
       </div>
     );
   }
@@ -405,7 +405,7 @@ export default function KanbanBoard({
   if (isError) {
     return (
       <div className="p-8 text-center text-red-500 font-medium">
-        Lỗi: {error?.message}
+        Error: {error?.message}
       </div>
     );
   }

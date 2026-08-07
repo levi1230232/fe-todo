@@ -196,7 +196,11 @@ export function TaskDetailModal({
             </div>
           )}
 
-          <TaskCommentSection taskId={task.id} currentUserId={user?.id} />
+          <TaskCommentSection
+            taskId={task.id}
+            currentUserId={user?.id}
+            currentRole={loggedInMember?.role ?? "MEMBER"}
+          />
         </div>
 
         <div className="pt-3 border-t flex justify-end shrink-0">

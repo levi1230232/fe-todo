@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Task,
   TaskStatus,
@@ -11,6 +13,7 @@ import {
   CreateTaskDto,
 } from "@/types/task";
 import { TeamMember } from "./types";
+import { CreateTaskInput, createTaskSchema } from "@/schemas/task.schema";
 
 interface TaskFormModalProps {
   isOpen: boolean;
@@ -46,22 +49,6 @@ export function TaskFormModal({
   const rawCategoryId = searchParams.get("categoryId");
   const categoryIdFromUrl = rawCategoryId ? Number(rawCategoryId) : null;
 
-  const todayStr = new Date().toISOString().split("T")[0];
-
-  const [formData, setFormData] = useState<CreateTaskDto>({
-    title: "",
-    description: "",
-    priority: Priority.MEDIUM,
-    status: defaultStatus,
-    dueTo: "",
-    reminder: 5,
-    assignedTo: null,
-    categoryId: isTeamWorkspace ? null : categoryIdFromUrl,
-    tagIds: [],
-    workspaceStyle: workspaceStyle,
-    teamId: isTeamWorkspace ? teamIdFromUrl : null,
-  });
-
   const getMinDateTime = () => {
     const now = new Date();
     const year = now.getFullYear();
@@ -72,7 +59,35 @@ export function TaskFormModal({
 
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
+
   const minDateTime = getMinDateTime();
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<CreateTaskInput>({
+    resolver: zodResolver(createTaskSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      priority: Priority.MEDIUM,
+      status: defaultStatus,
+      dueTo: "",
+      reminder: 5 as any,
+      assignedTo: undefined,
+      categoryId: isTeamWorkspace ? null : categoryIdFromUrl,
+      tagIds: [],
+      workspaceStyle: workspaceStyle,
+      teamId: isTeamWorkspace ? teamIdFromUrl : null,
+    },
+  });
+
+  const selectedTagIds = watch("tagIds") || [];
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -88,30 +103,28 @@ export function TaskFormModal({
       const parsedAssignedTo =
         initialData.assignedTo !== null && initialData.assignedTo !== undefined
           ? Number(initialData.assignedTo)
-          : null;
+          : undefined;
 
-      setFormData({
+      let formattedDueTo = "";
+      if (initialData.dueTo) {
+        const date = new Date(initialData.dueTo);
+        formattedDueTo = `${date.getFullYear()}-${String(
+          date.getMonth() + 1,
+        ).padStart(2, "0")}-${String(date.getDate()).padStart(
+          2,
+          "0",
+        )}T${String(date.getHours()).padStart(2, "0")}:${String(
+          date.getMinutes(),
+        ).padStart(2, "0")}`;
+      }
+
+      reset({
         title: initialData.title || "",
         description: initialData.description || "",
         priority: initialData.priority || Priority.MEDIUM,
         status: initialData.status || defaultStatus,
-        reminder: Math.min(Math.max(safeReminder, 0), 120),
-        dueTo: initialData.dueTo
-          ? (() => {
-              const date = new Date(initialData.dueTo);
-              return `${date.getFullYear()}-${String(
-                date.getMonth() + 1,
-              ).padStart(
-                2,
-                "0",
-              )}-${String(date.getDate()).padStart(2, "0")}T${String(
-                date.getHours(),
-              ).padStart(
-                2,
-                "0",
-              )}:${String(date.getMinutes()).padStart(2, "0")}`;
-            })()
-          : "",
+        reminder: Math.min(Math.max(safeReminder, 0), 120) as any,
+        dueTo: formattedDueTo,
         assignedTo: parsedAssignedTo,
         categoryId: initialData.categoryId
           ? Number(initialData.categoryId)
@@ -127,14 +140,14 @@ export function TaskFormModal({
           : null,
       });
     } else {
-      setFormData({
+      reset({
         title: "",
         description: "",
         priority: Priority.MEDIUM,
         status: defaultStatus,
         dueTo: "",
-        reminder: 5,
-        assignedTo: null,
+        reminder: 5 as any,
+        assignedTo: undefined,
         categoryId: isTeamWorkspace ? null : categoryIdFromUrl,
         tagIds: [],
         workspaceStyle: workspaceStyle,
@@ -149,65 +162,35 @@ export function TaskFormModal({
     teamIdFromUrl,
     categoryIdFromUrl,
     isTeamWorkspace,
+    reset,
   ]);
 
   if (!isOpen) return null;
 
   const toggleTag = (tagId: number) => {
-    setFormData((prev) => {
-      const currentTags = prev.tagIds || [];
-      const exists = currentTags.includes(tagId);
-      const nextTags = exists
-        ? currentTags.filter((id) => id !== tagId)
-        : [...currentTags, tagId];
-      return { ...prev, tagIds: nextTags };
-    });
+    const exists = selectedTagIds.includes(tagId);
+    const nextTags = exists
+      ? selectedTagIds.filter((id: number) => id !== tagId)
+      : [...selectedTagIds, tagId];
+    setValue("tagIds", nextTags, { shouldValidate: true });
   };
 
-  const handleReminderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.valueAsNumber;
-    const safeVal = isNaN(val) ? 0 : val;
-    const clampedValue = Math.min(Math.max(safeVal, 0), 120);
-    setFormData((prev) => ({ ...prev, reminder: clampedValue }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.title.trim()) return;
-
-    if (formData.dueTo && formData.dueTo < todayStr) {
-      return;
-    }
-
-    let finalAssignedTo: number | null = null;
-    if (
-      formData.assignedTo !== null &&
-      formData.assignedTo !== undefined &&
-      (formData.assignedTo as any) !== ""
-    ) {
-      finalAssignedTo = Number(formData.assignedTo);
-    }
-
-    if (isTeamWorkspace && !finalAssignedTo) {
-      // alert("Vui lòng chọn người đảm nhận công việc!");
-      return;
-    }
-
+  const onFormSubmit = (data: CreateTaskInput) => {
     const payload: CreateTaskDto = {
-      title: formData.title.trim(),
-      description: formData.description?.trim() || undefined,
-      priority: formData.priority,
-      status: formData.status,
-      reminder: Number(formData.reminder),
-      workspaceStyle,
-      teamId: isTeamWorkspace ? (formData.teamId ?? teamIdFromUrl) : null,
+      title: data.title.trim(),
+      description: data.description?.trim() || undefined,
+      priority: data.priority,
+      status: data.status,
+      reminder: Number(data.reminder),
+      workspaceStyle: data.workspaceStyle,
+      teamId: isTeamWorkspace ? (data.teamId ?? teamIdFromUrl) : null,
       categoryId:
-        !isTeamWorkspace && formData.categoryId
-          ? Number(formData.categoryId)
+        !isTeamWorkspace && data.categoryId
+          ? Number(data.categoryId)
           : undefined,
-      assignedTo: finalAssignedTo,
-      dueTo: formData.dueTo ? new Date(formData.dueTo).toISOString() : "",
-      tagIds: formData.tagIds || [],
+      assignedTo: data.assignedTo ? Number(data.assignedTo) : null,
+      dueTo: data.dueTo ? new Date(data.dueTo).toISOString() : "",
+      tagIds: data.tagIds || [],
     };
 
     console.log("Payload submit từ Modal:", payload);
@@ -231,21 +214,22 @@ export function TaskFormModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">
               Title <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              required
-              value={formData.title}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, title: e.target.value }))
-              }
+              {...register("title")}
               placeholder="Enter task name..."
               className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
+            {errors.title && (
+              <p className="text-xs text-red-500 mt-1">
+                {errors.title.message}
+              </p>
+            )}
           </div>
 
           <div>
@@ -254,16 +238,15 @@ export function TaskFormModal({
             </label>
             <textarea
               rows={3}
-              value={formData.description || ""}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  description: e.target.value,
-                }))
-              }
+              {...register("description")}
               placeholder="Enter description..."
               className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
             />
+            {errors.description && (
+              <p className="text-xs text-red-500 mt-1">
+                {errors.description.message}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -272,33 +255,26 @@ export function TaskFormModal({
                 Priority
               </label>
               <select
-                value={formData.priority}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    priority: e.target.value as Priority,
-                  }))
-                }
+                {...register("priority")}
                 className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
                 <option value={Priority.LOW}>LOW</option>
                 <option value={Priority.MEDIUM}>MEDIUM</option>
                 <option value={Priority.HIGH}>HIGH</option>
               </select>
+              {errors.priority && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.priority.message}
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">
-                Status{" "}
+                Status
               </label>
               <select
-                value={formData.status}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    status: e.target.value as TaskStatus,
-                  }))
-                }
+                {...register("status")}
                 className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
                 <option value={TaskStatus.PENDING}>PENDING</option>
@@ -306,6 +282,11 @@ export function TaskFormModal({
                 <option value={TaskStatus.REVIEW}>REVIEW</option>
                 <option value={TaskStatus.COMPLETED}>COMPLETED</option>
               </select>
+              {errors.status && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.status.message}
+                </p>
+              )}
             </div>
           </div>
 
@@ -315,14 +296,10 @@ export function TaskFormModal({
                 Assign to member <span className="text-red-500">*</span>
               </label>
               <select
-                value={formData.assignedTo ?? ""}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setFormData((prev) => ({
-                    ...prev,
-                    assignedTo: val !== "" ? Number(val) : null,
-                  }));
-                }}
+                {...register("assignedTo", {
+                  setValueAs: (v) =>
+                    v === "" || v === null ? null : Number(v),
+                })}
                 className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
                 <option value="">-- Select assignee --</option>
@@ -332,43 +309,54 @@ export function TaskFormModal({
                   </option>
                 ))}
               </select>
+              {errors.assignedTo && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.assignedTo.message}
+                </p>
+              )}
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">
-                Due Date<span className="text-red-500">*</span>
+                Due Date <span className="text-red-500">*</span>
               </label>
               <input
                 type="datetime-local"
                 min={minDateTime}
-                value={formData.dueTo || ""}
-                required
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, dueTo: e.target.value }))
-                }
+                {...register("dueTo")}
                 className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
+              {errors.dueTo && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.dueTo.message}
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">
-                Reminder (minutes)<span className="text-red-500">*</span>
+                Reminder (minutes) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
                 min={0}
                 max={120}
-                value={formData.reminder}
-                onChange={handleReminderChange}
+                {...register("reminder", {
+                  setValueAs: (v) => Math.min(Math.max(Number(v) || 0, 0), 120),
+                })}
                 placeholder="0 - 120"
-                required
                 className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
               <span className="text-[10px] text-slate-400 mt-0.5 block">
                 Maximum 120 minutes
               </span>
+              {errors.reminder && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.reminder.message}
+                </p>
+              )}
             </div>
           </div>
 
@@ -379,7 +367,7 @@ export function TaskFormModal({
             {availableTags && availableTags.length > 0 ? (
               <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 border border-slate-200 rounded-lg bg-slate-50">
                 {availableTags.map((tag) => {
-                  const isSelected = formData.tagIds?.includes(tag.id);
+                  const isSelected = selectedTagIds.includes(tag.id);
                   return (
                     <button
                       key={tag.id}
@@ -401,7 +389,9 @@ export function TaskFormModal({
                 })}
               </div>
             ) : (
-              <p className="text-xs text-slate-400 italic">Chưa có thẻ nào.</p>
+              <p className="text-xs text-slate-400 italic">
+                No tags available.
+              </p>
             )}
           </div>
 

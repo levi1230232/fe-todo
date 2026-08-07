@@ -58,9 +58,9 @@ export const DeleteTagDialog = ({
         </div>
 
         <p className="text-xs text-gray-600 mb-4 leading-relaxed">
-          Bạn có chắc chắn muốn xóa tag{" "}
-          <span className="font-bold text-gray-800">"{tag.name}"</span>? Hành
-          động này không thể hoàn tác.
+          Are you sure you want to delete the tag{" "}
+          <span className="font-bold text-gray-800">"{tag.name}"</span>? This
+          action cannot be undone.
         </p>
 
         <div className="flex justify-end gap-2">
@@ -70,7 +70,7 @@ export const DeleteTagDialog = ({
             disabled={isPending}
             className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-md border border-gray-200 transition disabled:opacity-50"
           >
-            Hủy
+            Cancel
           </button>
           <button
             type="button"
@@ -78,7 +78,7 @@ export const DeleteTagDialog = ({
             disabled={isPending}
             className="px-3 py-1.5 text-xs bg-red-600 text-white font-medium rounded-md hover:bg-red-700 disabled:opacity-50 transition"
           >
-            {isPending ? "Đang xóa..." : "Xóa vĩnh viễn"}
+            {isPending ? "Deleting..." : "Delete permanently"}
           </button>
         </div>
       </div>

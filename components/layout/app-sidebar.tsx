@@ -159,7 +159,7 @@ export default function Sidebar() {
   const isDashboardActive = pathname === "/dashboard";
 
   return (
-    <aside className="fixed top-0 group/sidebar flex h-screen w-16 hover:w-72 flex-col border-r bg-white text-slate-700 transition-all duration-300 ease-in-out overflow-y-auto overflow-x-hidden z-50">
+    <aside className="fixed top-0 group/sidebar shadow flex h-screen w-16 hover:w-72 flex-col border-r bg-white text-slate-700 transition-all duration-300 ease-in-out overflow-y-auto overflow-x-hidden z-50">
       <div className="flex h-16 shrink-0 items-center px-3 border-b">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 font-bold text-white shadow-md shadow-indigo-600/20">
           T

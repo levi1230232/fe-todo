@@ -10,7 +10,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { format, isValid, parseISO, formatDistanceToNow } from "date-fns";
-import { vi } from "date-fns/locale";
+import { enUS, vi } from "date-fns/locale";
 import { Notification } from "./NotificationItem";
 
 interface NotificationDetailModalProps {
@@ -45,7 +45,7 @@ const formatNotificationTime = (dateString: string) => {
 
   return formatDistanceToNow(date, {
     addSuffix: true,
-    locale: vi,
+    locale: enUS,
   });
 };
 

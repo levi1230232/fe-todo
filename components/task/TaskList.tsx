@@ -47,8 +47,9 @@ export default function TaskList({
 
         const targetHref = task.categoryId
           ? `tasks?workspaceStyle=${task.workspaceStyle}&categoryId=${task.categoryId}&activeTaskId=${task.id}`
-          : `tasks?workspaceStyle=${task.workspaceStyle}&teamId=${task.teamId}&activeTaskId=${task.id}`;
-
+          : task.teamId
+            ? `tasks?workspaceStyle=${task.workspaceStyle}&teamId=${task.teamId}&activeTaskId=${task.id}`
+            : "/dashboard";
         return (
           <Link
             href={targetHref}

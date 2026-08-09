@@ -88,7 +88,7 @@ export default function DeletedTasksClient() {
   );
 
   return (
-    <div className="ml-14 flex flex-col h-screen bg-slate-50 overflow-hidden">
+    <div className="ml-0 md:ml-14 flex flex-col h-screen bg-slate-50 overflow-hidden">
       <header className="bg-white border-b border-slate-200 px-6 py-4 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button

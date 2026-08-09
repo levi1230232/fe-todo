@@ -137,7 +137,7 @@ export default function TaskPageClient() {
   }).toString()}`;
 
   return (
-    <div className="ml-14 flex h-screen bg-slate-50 overflow-hidden relative">
+    <div className="ml-0 md:ml-14 flex h-screen bg-slate-50 overflow-hidden relative">
       <div className="flex-1 flex flex-col min-w-0 overflow-x-auto transition-all duration-300">
         <header className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm">
           <div>

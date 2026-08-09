@@ -2,14 +2,18 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, User, Settings, ChevronDown } from "lucide-react";
+import { LogOut, User, Settings, ChevronDown, Menu } from "lucide-react";
 import { useUser, useLogout } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { NotificationPopover } from "@/components/notification/NotificationPopover";
 import { Notification } from "@/components/notification/NotificationItem";
 import { NotificationDetailModal } from "@/components/notification/NotificationDetailModal";
+import { SidebarTrigger } from "../ui/sidebar";
 
-export default function Header() {
+interface HeaderProps {
+  onOpenMobile?: () => void;
+}
+export default function Header({ onOpenMobile }: HeaderProps) {
   const router = useRouter();
 
   const { data: user } = useUser();
@@ -61,6 +65,16 @@ export default function Header() {
   return (
     <>
       <header className="sticky top-0 z-10 flex h-[64px] w-full items-center justify-between border-b bg-white/80 px-6 backdrop-blur-md">
+        <button
+          type="button"
+          onClick={onOpenMobile}
+          className="flex h-9 w-9 items-center justify-center rounded-lg border text-slate-600 hover:bg-slate-100 lg:hidden"
+          aria-label="Open Sidebar"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+
+        <div className="flex-1 font-semibold text-slate-800">Dashboard</div>
         <div className="ml-auto flex items-center gap-3">
           <NotificationPopover onNotificationClick={handleNotificationClick} />
 

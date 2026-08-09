@@ -164,7 +164,7 @@ export default function DashboardClient() {
   if (!user) return null;
 
   return (
-    <div className="ml-14 max-w-full p-6 space-y-8 bg-slate-50 min-h-screen">
+    <div className="ml-0 md:ml-14 max-w-full p-6 space-y-8 bg-slate-50 min-h-screen">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl border bg-white p-6 shadow-sm">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">

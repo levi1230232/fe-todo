@@ -74,7 +74,6 @@ export default function Header({ onOpenMobile }: HeaderProps) {
           <Menu className="h-5 w-5" />
         </button>
 
-        <div className="flex-1 font-semibold text-slate-800">Dashboard</div>
         <div className="ml-auto flex items-center gap-3">
           <NotificationPopover onNotificationClick={handleNotificationClick} />
 

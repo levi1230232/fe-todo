@@ -19,7 +19,7 @@ export default function DashboardLayout({
         <AppSidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
         <SidebarInset>
           <Header onOpenMobile={() => setMobileOpen(true)} />
-          <main className="flex-1 p-4 lg:p-6">{children}</main>
+          {children}
         </SidebarInset>
       </SidebarProvider>
     </AuthGuard>

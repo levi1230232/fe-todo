@@ -114,14 +114,12 @@ export function TaskCardContent({
       task.createdById === effectiveUserId);
 
   const loggedInMember = effectiveUserId
-    ? teamMembers.find(
-        (m) => m.user?.id === effectiveUserId || m.id === effectiveUserId,
-      )
+    ? teamMembers.find((m) => m.user?.id === effectiveUserId)
     : null;
-  const assignee = teamMembers.find(
-    (m) => m.user?.id === task.assignedTo || m.id === task.assignedTo,
-  );
-  const activeRole = currentUserRole || loggedInMember?.role;
+  const assignee = task.assignedTo
+    ? teamMembers.find((m) => m.user?.id === task.assignedTo)
+    : null;
+  const activeRole = currentUserRole ?? loggedInMember?.role;
 
   const canDelete =
     task.workspaceStyle === "PERSONAL" ||
@@ -144,28 +142,16 @@ export function TaskCardContent({
 
   const formattedDueDate = formatDate(task.dueTo);
 
-  const handleClick = () => {
-    if (isClicked || isEditingDate || isAssigning) return;
-    setIsClicked(true);
-
-    setTimeout(() => {
-      onClickTask?.(task);
-      setIsClicked(false);
-    }, 300);
+  const handleClick = (e: React.MouseEvent) => {
+    if (isEditingDate || isAssigning) return;
+    onClickTask?.(task);
   };
 
   return (
     <motion.div
       layoutId={`task-card-${task.id}`}
       onClick={handleClick}
-      animate={
-        isClicked || isActive
-          ? {
-              scale: isClicked ? 1.08 : 1.03,
-              zIndex: 20,
-            }
-          : { scale: 1, zIndex: 0 }
-      }
+      animate={isActive ? { scale: 1.03, zIndex: 20 } : { scale: 1, zIndex: 0 }}
       whileHover={{ scale: isOverlay ? 1.05 : 1.015 }}
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.25, ease: "easeInOut" }}

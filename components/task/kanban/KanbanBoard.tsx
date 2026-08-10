@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect, Suspense } from "react";
+import React, { useMemo, useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   DndContext,
@@ -103,6 +103,8 @@ export default function KanbanBoard({
   const [localTasks, setLocalTasks] = useState<Task[]>([]);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
+  const initialTaskStatusRef = useRef<TaskStatus | null>(null);
+
   useEffect(() => {
     if (Array.isArray(rawTasks)) {
       setLocalTasks(rawTasks);
@@ -112,7 +114,7 @@ export default function KanbanBoard({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5,
+        distance: 8,
       },
     }),
     useSensor(KeyboardSensor),
@@ -195,9 +197,10 @@ export default function KanbanBoard({
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    const task = localTasks.find((t) => t.id === active.id);
+    const task = localTasks.find((t) => t.id === Number(active.id));
     if (task) {
       setActiveTask(task);
+      initialTaskStatusRef.current = task.status;
     }
   };
 
@@ -205,17 +208,18 @@ export default function KanbanBoard({
     const { active, over } = event;
     if (!over) return;
 
-    const activeId = active.id as number;
+    const activeId = Number(active.id);
     const overId = over.id;
 
     const activeTaskIndex = localTasks.findIndex((t) => t.id === activeId);
     if (activeTaskIndex === -1) return;
 
     let newStatus: TaskStatus | null = null;
+
     if (Object.values(TaskStatus).includes(overId as TaskStatus)) {
       newStatus = overId as TaskStatus;
     } else {
-      const overTask = localTasks.find((t) => t.id === overId);
+      const overTask = localTasks.find((t) => t.id === Number(overId));
       if (overTask) {
         newStatus = overTask.status;
       }
@@ -237,32 +241,43 @@ export default function KanbanBoard({
     const { active, over } = event;
     setActiveTask(null);
 
-    if (!over) return;
+    const originalStatus = initialTaskStatusRef.current;
+    initialTaskStatusRef.current = null;
 
-    const taskId = active.id as number;
+    if (!over) {
+      if (rawTasks) setLocalTasks(rawTasks);
+      return;
+    }
+
+    const taskId = Number(active.id);
     const overId = over.id;
 
     let targetStatus: TaskStatus | null = null;
+
     if (Object.values(TaskStatus).includes(overId as TaskStatus)) {
       targetStatus = overId as TaskStatus;
     } else {
-      const overTask = localTasks.find((t) => t.id === overId);
+      const overTask = rawTasks?.find((t) => t.id === Number(overId));
       if (overTask) {
         targetStatus = overTask.status;
+      } else {
+        const localOverTask = localTasks.find((t) => t.id === Number(overId));
+        if (localOverTask) targetStatus = localOverTask.status;
       }
     }
 
-    const originalTask = rawTasks?.find((t) => t.id === taskId);
-
-    if (originalTask && targetStatus && originalTask.status !== targetStatus) {
+    if (targetStatus && originalStatus && originalStatus !== targetStatus) {
       changeStatusMutation.mutate(
         { id: taskId, status: targetStatus },
         {
-          onError: () => {
+          onError: (err) => {
+            console.error("Cập nhật trạng thái thất bại:", err);
             if (rawTasks) setLocalTasks(rawTasks);
           },
         },
       );
+    } else if (!targetStatus && rawTasks) {
+      setLocalTasks(rawTasks);
     }
   };
 
@@ -411,7 +426,7 @@ export default function KanbanBoard({
   }
 
   return (
-    <div className="space-y-4 w-full ">
+    <div className="space-y-4 w-full">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}

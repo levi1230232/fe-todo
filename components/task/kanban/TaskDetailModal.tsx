@@ -38,7 +38,7 @@ export function TaskDetailModal({
   if (!isOpen || !task) return null;
 
   const loggedInMember = user?.id
-    ? teamMembers.find((m) => m.user?.id === user.id || m.id === user.id)
+    ? teamMembers.find((m) => m.user?.id === user.id)
     : null;
 
   const activeRole = loggedInMember?.role;

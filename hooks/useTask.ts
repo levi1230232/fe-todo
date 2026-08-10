@@ -4,6 +4,7 @@ import {
   UpdateTaskDto,
   TaskStatus,
   Priority,
+  Task,
 } from "@/types/task";
 import { taskService } from "@/services/task.service";
 
@@ -110,10 +111,70 @@ export function useChangeTaskStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, status }: { id: number; status: TaskStatus }) =>
-      taskService.changeStatus(id, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TASK_KEYS.all });
+    mutationFn: ({ id, status }: { id: number; status: TaskStatus }) => {
+      console.log("CHANGE TASK STATUS:", { id, status });
+      return taskService.changeStatus(id, status);
+    },
+
+    onMutate: async ({ id, status }) => {
+      await queryClient.cancelQueries({ queryKey: TASK_KEYS.all });
+
+      const previousTasks = queryClient.getQueryData(TASK_KEYS.all);
+
+      queryClient.setQueriesData(
+        { queryKey: TASK_KEYS.all },
+        (oldData: any) => {
+          if (!oldData) return oldData;
+
+          if (Array.isArray(oldData)) {
+            return oldData.map((task: Task) =>
+              task.id === id ? { ...task, status } : task,
+            );
+          }
+
+          if (oldData && Array.isArray(oldData.tasks)) {
+            return {
+              ...oldData,
+              tasks: oldData.tasks.map((task: Task) =>
+                task.id === id ? { ...task, status } : task,
+              ),
+            };
+          }
+
+          return oldData;
+        },
+      );
+
+      return { previousTasks };
+    },
+
+    onError: (error: any, variables, context) => {
+      // console.error("CHANGE STATUS ERROR:", {
+      //   taskId: variables.id,
+      //   status: variables.status,
+      //   responseData: error?.response?.data,
+      //   responseStatus: error?.response?.status,
+      //   requestUrl: error?.config?.url,
+      //   requestMethod: error?.config?.method,
+      //   requestData: error?.config?.data,
+      //   message: error?.message,
+      // });
+
+      if (context?.previousTasks) {
+        queryClient.setQueryData(TASK_KEYS.all, context.previousTasks);
+      }
+    },
+
+    onSettled: (data, error, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: TASK_KEYS.all,
+      });
+
+      if (variables?.id) {
+        queryClient.invalidateQueries({
+          queryKey: TASK_KEYS.detail(variables.id),
+        });
+      }
     },
   });
 }

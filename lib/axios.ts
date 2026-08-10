@@ -30,7 +30,17 @@ api.interceptors.response.use(
 
   async (error) => {
     const originalRequest = error.config;
+    const status = error.response?.status;
+    if (status === 403 && typeof window !== "undefined") {
+      const currentUrl = new URL(window.location.href);
+      const isTeamWorkspace =
+        currentUrl.searchParams.get("workspaceStyle") === "TEAM";
 
+      if (isTeamWorkspace) {
+        window.location.replace("/dashboard");
+        return Promise.reject(error);
+      }
+    }
     if (
       error.response?.status !== 401 ||
       originalRequest._retry ||

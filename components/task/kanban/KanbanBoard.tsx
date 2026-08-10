@@ -104,6 +104,7 @@ export default function KanbanBoard({
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   const initialTaskStatusRef = useRef<TaskStatus | null>(null);
+  const targetTaskStatusRef = useRef<TaskStatus | null>(null);
 
   useEffect(() => {
     if (Array.isArray(rawTasks)) {
@@ -196,89 +197,110 @@ export default function KanbanBoard({
   }, [localTasks, filters, isTeamWorkspace]);
 
   const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const task = localTasks.find((t) => t.id === Number(active.id));
-    if (task) {
-      setActiveTask(task);
-      initialTaskStatusRef.current = task.status;
-    }
+    const taskId = Number(event.active.id);
+
+    const task = localTasks.find((task) => task.id === taskId);
+
+    if (!task) return;
+
+    setActiveTask(task);
+
+    initialTaskStatusRef.current = task.status;
+    targetTaskStatusRef.current = task.status;
   };
 
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
+
     if (!over) return;
 
-    const activeId = Number(active.id);
-    const overId = over.id;
+    const taskId = Number(active.id);
 
-    const activeTaskIndex = localTasks.findIndex((t) => t.id === activeId);
-    if (activeTaskIndex === -1) return;
+    let targetStatus: TaskStatus | null = null;
 
-    let newStatus: TaskStatus | null = null;
-
-    if (Object.values(TaskStatus).includes(overId as TaskStatus)) {
-      newStatus = overId as TaskStatus;
+    if (Object.values(TaskStatus).includes(over.id as TaskStatus)) {
+      targetStatus = over.id as TaskStatus;
     } else {
-      const overTask = localTasks.find((t) => t.id === Number(overId));
+      const overTask = localTasks.find((task) => task.id === Number(over.id));
+
       if (overTask) {
-        newStatus = overTask.status;
+        targetStatus = overTask.status;
       }
     }
 
-    if (newStatus && localTasks[activeTaskIndex].status !== newStatus) {
-      setLocalTasks((prev) => {
-        const updated = [...prev];
-        updated[activeTaskIndex] = {
-          ...updated[activeTaskIndex],
-          status: newStatus,
-        };
-        return updated;
-      });
-    }
+    if (!targetStatus) return;
+
+    targetTaskStatusRef.current = targetStatus;
+
+    setLocalTasks((prev) => {
+      const currentTask = prev.find((task) => task.id === taskId);
+
+      if (!currentTask || currentTask.status === targetStatus) {
+        return prev;
+      }
+
+      return prev.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              status: targetStatus!,
+            }
+          : task,
+      );
+    });
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    setActiveTask(null);
+
+    const taskId = Number(active.id);
 
     const originalStatus = initialTaskStatusRef.current;
-    initialTaskStatusRef.current = null;
 
-    if (!over) {
-      if (rawTasks) setLocalTasks(rawTasks);
+    const targetStatus = targetTaskStatusRef.current;
+
+    setActiveTask(null);
+
+    initialTaskStatusRef.current = null;
+    targetTaskStatusRef.current = null;
+
+    if (!over || !originalStatus || !targetStatus) {
+      setLocalTasks(rawTasks);
       return;
     }
 
-    const taskId = Number(active.id);
-    const overId = over.id;
-
-    let targetStatus: TaskStatus | null = null;
-
-    if (Object.values(TaskStatus).includes(overId as TaskStatus)) {
-      targetStatus = overId as TaskStatus;
-    } else {
-      const overTask = rawTasks?.find((t) => t.id === Number(overId));
-      if (overTask) {
-        targetStatus = overTask.status;
-      } else {
-        const localOverTask = localTasks.find((t) => t.id === Number(overId));
-        if (localOverTask) targetStatus = localOverTask.status;
-      }
+    if (originalStatus === targetStatus) {
+      return;
     }
 
-    if (targetStatus && originalStatus && originalStatus !== targetStatus) {
-      changeStatusMutation.mutate(
-        { id: taskId, status: targetStatus },
-        {
-          onError: (err) => {
-            console.error("Cập nhật trạng thái thất bại:", err);
-            if (rawTasks) setLocalTasks(rawTasks);
-          },
+    console.log("DRAG STATUS UPDATE", {
+      taskId,
+      originalStatus,
+      targetStatus,
+    });
+
+    changeStatusMutation.mutate(
+      {
+        id: taskId,
+        status: targetStatus,
+      },
+      {
+        onError: (error) => {
+          // console.error("Cập nhật status thất bại:", error);
+
+          setLocalTasks((prev) =>
+            prev.map((task) =>
+              task.id === taskId
+                ? {
+                    ...task,
+                    status: originalStatus,
+                  }
+                : task,
+            ),
+          );
         },
-      );
-    } else if (!targetStatus && rawTasks) {
-      setLocalTasks(rawTasks);
-    }
+      },
+    );
   };
 
   const handleOpenDetail = (task: Task) => {

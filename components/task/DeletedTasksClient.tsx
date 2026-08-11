@@ -21,7 +21,7 @@ import {
 } from "@/hooks/useTask";
 import { useCategory } from "@/hooks/useCategories";
 import { useTeam, useTeamMembers } from "@/hooks/useTeam";
-import { Task } from "@/types/task";
+import { Tag, Task } from "@/types/task";
 import { toast } from "sonner";
 import { useUser } from "@/hooks/useAuth";
 
@@ -177,7 +177,7 @@ export default function DeletedTasksClient() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredTasks.map((task: any) => (
+            {filteredTasks.map((task: Task) => (
               <div
                 key={task.id}
                 className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between"
@@ -208,15 +208,19 @@ export default function DeletedTasksClient() {
                     </p>
                   )}
 
-                  {task.tags && task.tags.length > 0 && (
+                  {task.taskTags && task.taskTags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-3">
-                      {task.tags.map((tag: any) => (
+                      {task.taskTags.map((item) => (
                         <span
-                          key={tag.id}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600"
+                          key={item.tag.id}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium"
+                          style={{
+                            backgroundColor: `${item.tag.color}20`,
+                            color: item.tag.color,
+                          }}
                         >
                           <TagIcon size={10} />
-                          {tag.name}
+                          {item.tag.name}
                         </span>
                       ))}
                     </div>

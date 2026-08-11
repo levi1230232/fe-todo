@@ -49,7 +49,7 @@ export interface Task {
   priority: Priority;
   status: TaskStatus;
   dueTo?: string;
-  reminder?: string;
+  reminder?: number;
   workspaceStyle: WorkspaceStyle;
   teamId?: number | null;
   categoryId?: number | null;

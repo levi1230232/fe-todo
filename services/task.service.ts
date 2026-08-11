@@ -11,7 +11,7 @@ import {
 
 export const taskService = {
   async create(dto: CreateTaskDto): Promise<ApiResponse> {
-    console.log("DTO:", dto);
+    // console.log("DTO:", dto);
     const response = await api.post<ApiResponse>("/tasks", dto);
     return response.data;
   },

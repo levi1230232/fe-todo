@@ -94,7 +94,7 @@ export function TaskFormModal({
     if (initialData) {
       const extractedTagIds =
         initialData.taskTags?.map((item: any) =>
-          item.tag ? Number(item.tag.id) : Number(item.id),
+          Number(item.tag ? item.tag.id : item.id),
         ) || [];
 
       const parsedReminder = Number(initialData.reminder);
@@ -167,15 +167,29 @@ export function TaskFormModal({
 
   if (!isOpen) return null;
 
-  const toggleTag = (tagId: number) => {
-    const exists = selectedTagIds.includes(tagId);
+  const toggleTag = (rawTagId: number | string) => {
+    const tagId = Number(rawTagId);
+    const currentTags: number[] = Array.isArray(selectedTagIds)
+      ? selectedTagIds.map((id) => Number(id)).filter((id) => !isNaN(id))
+      : [];
+
+    const exists = currentTags.includes(tagId);
     const nextTags = exists
-      ? selectedTagIds.filter((id: number) => id !== tagId)
-      : [...selectedTagIds, tagId];
-    setValue("tagIds", nextTags, { shouldValidate: true });
+      ? currentTags.filter((id) => id !== tagId)
+      : [...currentTags, tagId];
+
+    setValue("tagIds", nextTags, {
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true,
+    });
   };
 
   const onFormSubmit = (data: CreateTaskInput) => {
+    const cleanTagIds = (data.tagIds ?? [])
+      .map((id) => Number(id))
+      .filter((id) => !isNaN(id));
+
     const payload: CreateTaskDto = {
       title: data.title.trim(),
       description: data.description?.trim() || undefined,
@@ -190,10 +204,10 @@ export function TaskFormModal({
           : undefined,
       assignedTo: data.assignedTo ? Number(data.assignedTo) : null,
       dueTo: data.dueTo ? new Date(data.dueTo).toISOString() : "",
-      tagIds: data.tagIds || [],
+      tagIds: cleanTagIds,
     };
 
-    console.log("Payload submit từ Modal:", payload);
+    // console.log("Payload submit từ Modal:", payload);
     onSubmit(payload);
     onClose();
   };
@@ -214,7 +228,12 @@ export function TaskFormModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
+        <form
+          onSubmit={handleSubmit(onFormSubmit, (errors) =>
+            console.log("Form errors:", errors),
+          )}
+          className="space-y-4"
+        >
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">
               Title <span className="text-red-500">*</span>
@@ -367,7 +386,11 @@ export function TaskFormModal({
             {availableTags && availableTags.length > 0 ? (
               <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 border border-slate-200 rounded-lg bg-slate-50">
                 {availableTags.map((tag) => {
-                  const isSelected = selectedTagIds.includes(tag.id);
+                  const tagIdNum = Number(tag.id);
+                  const isSelected = selectedTagIds
+                    .map(Number)
+                    .includes(tagIdNum);
+
                   return (
                     <button
                       key={tag.id}
@@ -391,6 +414,11 @@ export function TaskFormModal({
             ) : (
               <p className="text-xs text-slate-400 italic">
                 No tags available.
+              </p>
+            )}
+            {errors.tagIds && (
+              <p className="text-xs text-red-500 mt-1">
+                {errors.tagIds.message as string}
               </p>
             )}
           </div>

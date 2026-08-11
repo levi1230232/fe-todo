@@ -198,43 +198,35 @@ export default function KanbanBoard({
 
   const handleDragStart = (event: DragStartEvent) => {
     const taskId = Number(event.active.id);
-
     const task = localTasks.find((task) => task.id === taskId);
-
     if (!task) return;
 
     setActiveTask(task);
-
     initialTaskStatusRef.current = task.status;
     targetTaskStatusRef.current = task.status;
   };
 
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
-
     if (!over) return;
 
     const taskId = Number(active.id);
-
     let targetStatus: TaskStatus | null = null;
 
     if (Object.values(TaskStatus).includes(over.id as TaskStatus)) {
       targetStatus = over.id as TaskStatus;
     } else {
       const overTask = localTasks.find((task) => task.id === Number(over.id));
-
       if (overTask) {
         targetStatus = overTask.status;
       }
     }
 
     if (!targetStatus) return;
-
     targetTaskStatusRef.current = targetStatus;
 
     setLocalTasks((prev) => {
       const currentTask = prev.find((task) => task.id === taskId);
-
       if (!currentTask || currentTask.status === targetStatus) {
         return prev;
       }
@@ -252,15 +244,11 @@ export default function KanbanBoard({
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-
     const taskId = Number(active.id);
-
     const originalStatus = initialTaskStatusRef.current;
-
     const targetStatus = targetTaskStatusRef.current;
 
     setActiveTask(null);
-
     initialTaskStatusRef.current = null;
     targetTaskStatusRef.current = null;
 
@@ -273,21 +261,13 @@ export default function KanbanBoard({
       return;
     }
 
-    console.log("DRAG STATUS UPDATE", {
-      taskId,
-      originalStatus,
-      targetStatus,
-    });
-
     changeStatusMutation.mutate(
       {
         id: taskId,
         status: targetStatus,
       },
       {
-        onError: (error) => {
-          // console.error("Cập nhật status thất bại:", error);
-
+        onError: () => {
           setLocalTasks((prev) =>
             prev.map((task) =>
               task.id === taskId
@@ -317,6 +297,16 @@ export default function KanbanBoard({
   const handleOpenEdit = (task: Task) => {
     setEditingTask(task);
     setIsFormOpen(true);
+  };
+
+  const mapTagsToTaskTags = (tagIds?: number[]) => {
+    if (!tagIds || tagIds.length === 0) return [];
+    return tagIds.map((id) => {
+      const tagObj = availableTags.find((tag) => tag.id === id);
+      return {
+        tag: tagObj || { id, name: "Tag", color: "#64748b" },
+      };
+    });
   };
 
   const handleFormSubmit = (formData: CreateTaskDto) => {
@@ -374,12 +364,7 @@ export default function KanbanBoard({
                     ...baseDto,
                     reminder: numericReminder,
                     assignedTo: assignedTo ?? null,
-                    taskTags: tagIds?.map((id) => {
-                      const tagObj = availableTags.find((tag) => tag.id === id);
-                      return {
-                        tag: tagObj || { id, name: "Tag", color: "#64748b" },
-                      };
-                    }),
+                    taskTags: mapTagsToTaskTags(tagIds),
                   };
                   return updatedTask as unknown as Task;
                 }
@@ -399,28 +384,48 @@ export default function KanbanBoard({
       };
 
       createTaskMutation?.mutate(createPayload, {
-        onSuccess: (response: any) => {
+        onSuccess: async (response: any) => {
           const createdTask: Task = response?.data || response;
 
-          if (createdTask && createdTask.id) {
+          if (!createdTask?.id) {
+            console.error("Không lấy được taskId sau khi tạo task");
+            return;
+          }
+
+          try {
             if (tagIds && tagIds.length > 0) {
-              addTagsMutation.mutate({ taskId: createdTask.id, tagIds });
+              await addTagsMutation.mutateAsync({
+                taskId: createdTask.id,
+                tagIds,
+              });
             }
 
-            const fullNewTask = {
+            const mappedTags = mapTagsToTaskTags(tagIds);
+
+            const fullNewTask: Task = {
               ...createdTask,
               reminder: numericReminder,
               assignedTo: assignedTo ?? createdTask.assignedTo,
-              taskTags: tagIds?.map((id) => {
-                const tagObj = availableTags.find((tag) => tag.id === id);
-                return {
-                  tag: tagObj || { id, name: "Tag", color: "#64748b" },
-                };
-              }),
-            } as unknown as Task;
+              taskTags: mappedTags,
+            } as Task;
 
             setLocalTasks((prev) => [...prev, fullNewTask]);
+          } catch (error) {
+            console.error("Lỗi khi tạo task hoặc gán tag:", error);
+
+            const fallbackTask: Task = {
+              ...createdTask,
+              reminder: numericReminder,
+              assignedTo: assignedTo ?? createdTask.assignedTo,
+              taskTags: [],
+            } as Task;
+
+            setLocalTasks((prev) => [...prev, fallbackTask]);
           }
+        },
+
+        onError: (error) => {
+          console.error("Lỗi khi tạo task:", error);
         },
       });
     }

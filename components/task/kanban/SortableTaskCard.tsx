@@ -1,10 +1,12 @@
 "use client";
 
+import { useMemo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Task, TaskStatus } from "@/types/task";
 import { TaskCardContent } from "./TaskCardContent";
 import { TeamMember } from "./types";
+import { useUser } from "@/hooks/useAuth";
 
 interface SortableTaskCardProps {
   task: Task;
@@ -19,8 +21,37 @@ export function SortableTaskCard({
   onChangeStatus,
   onDelete,
   onClickTask,
-  teamMembers,
+  teamMembers = [],
 }: SortableTaskCardProps) {
+  const { data: user } = useUser();
+
+  const canDrag = useMemo(() => {
+    if (!user) return false;
+
+    if (task.workspaceStyle === "PERSONAL" || teamMembers.length === 0) {
+      return true;
+    }
+
+    const currentMember = teamMembers.find(
+      (m) => String(m.user?.id ?? m.id) === String(user.id),
+    );
+    const role = currentMember?.role?.toUpperCase();
+
+    if (role === "ADMIN" || role === "OWNER") {
+      return true;
+    }
+
+    if (task.assignedTo && String(task.assignedTo) === String(user.id)) {
+      return true;
+    }
+
+    if (task.createBy && String(task.createBy) === String(user.id)) {
+      return true;
+    }
+
+    return false;
+  }, [user, task, teamMembers]);
+
   const {
     attributes,
     listeners,
@@ -28,7 +59,10 @@ export function SortableTaskCard({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id });
+  } = useSortable({
+    id: task.id,
+    disabled: !canDrag,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -42,7 +76,9 @@ export function SortableTaskCard({
       style={style}
       {...attributes}
       {...listeners}
-      className="cursor-grab active:cursor-grabbing touch-none"
+      className={`${
+        canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
+      } touch-none`}
     >
       <TaskCardContent
         task={task}

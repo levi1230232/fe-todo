@@ -13,6 +13,9 @@ import {
   DragStartEvent,
   DragEndEvent,
   DragOverEvent,
+  CollisionDetection,
+  pointerWithin,
+  rectIntersection,
 } from "@dnd-kit/core";
 
 import {
@@ -41,6 +44,7 @@ import { TaskCardContent } from "./TaskCardContent";
 import { TaskFormModal } from "./TaskFormModal";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { COLUMNS, KanbanBoardProps, TeamMember } from "./types";
+import { useUser } from "@/hooks/useAuth";
 
 export default function KanbanBoard({
   teamId = null,
@@ -67,7 +71,7 @@ export default function KanbanBoard({
   const teamMembers: TeamMember[] = isTeamWorkspace
     ? teamMembersQuery?.data || []
     : [];
-
+  const { data: currentUser } = useUser();
   const activeQuery = categoryId
     ? categoryTasksQuery
     : isTeamWorkspace
@@ -120,6 +124,19 @@ export default function KanbanBoard({
     }),
     useSensor(KeyboardSensor),
   );
+  const customCollisionDetectionAlgorithm: CollisionDetection = (args) => {
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) {
+      return pointerCollisions;
+    }
+
+    const rectCollisions = rectIntersection(args);
+    if (rectCollisions.length > 0) {
+      return rectCollisions;
+    }
+
+    return closestCorners(args);
+  };
 
   const filteredTasks = useMemo(() => {
     return localTasks.filter((task) => {
@@ -198,8 +215,25 @@ export default function KanbanBoard({
 
   const handleDragStart = (event: DragStartEvent) => {
     const taskId = Number(event.active.id);
-    const task = localTasks.find((task) => task.id === taskId);
-    if (!task) return;
+    const task = localTasks.find((t) => t.id === taskId);
+    if (!task || !currentUser) return;
+
+    if (isTeamWorkspace && teamMembers.length > 0) {
+      const currentMember = teamMembers.find(
+        (m) => String(m.user?.id ?? m.id) === String(currentUser.id),
+      );
+      const role = currentMember?.role?.toUpperCase();
+
+      const isAssignee =
+        task.assignedTo && String(task.assignedTo) === String(currentUser.id);
+      const isCreator =
+        task.createBy && String(task.createBy) === String(currentUser.id);
+      const isAdminOrOwner = role === "ADMIN" || role === "OWNER";
+
+      if (!isAssignee && !isCreator && !isAdminOrOwner) {
+        return;
+      }
+    }
 
     setActiveTask(task);
     initialTaskStatusRef.current = task.status;
@@ -456,7 +490,8 @@ export default function KanbanBoard({
     <div className="space-y-4 w-full">
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        // collisionDetection={closestCorners}
+        collisionDetection={customCollisionDetectionAlgorithm}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}

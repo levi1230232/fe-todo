@@ -9,31 +9,19 @@ import {
   useGetTeamTags,
   useUpdateTag,
 } from "@/hooks/useTag";
-import { useUser } from "@/hooks/useAuth";
 import { Tag } from "@/types/tag";
 import { Plus, X, Check, Edit2, Trash2 } from "lucide-react";
 import { DeleteTagDialog } from "./DeleteTagModel";
-import { TeamMember } from "@/types/team";
 
 interface TagManagerProps {
-  members?: TeamMember[];
+  canManage?: boolean;
 }
 
-export const TagManager = ({ members = [] }: TagManagerProps) => {
+export const TagManager = ({ canManage = true }: TagManagerProps) => {
   const searchParams = useSearchParams();
   const teamIdParam = searchParams.get("teamId");
   const teamId = teamIdParam ? Number(teamIdParam) : null;
   const isTeam = Boolean(teamId);
-
-  const { data: currentUser } = useUser();
-
-  const currentMember = members.find(
-    (m) => String(m.user?.id) === String(currentUser?.id),
-  );
-
-  const canManage = isTeam
-    ? currentMember?.role === "OWNER" || currentMember?.role === "ADMIN"
-    : true;
 
   const personalQuery = useGetPersonalTags();
   const teamQuery = useGetTeamTags(teamId ?? 0);
@@ -222,7 +210,6 @@ export const TagManager = ({ members = [] }: TagManagerProps) => {
                       </span>
                     </div>
 
-                    {/* Chỉ hiển thị nút Sửa/Xóa khi có quyền */}
                     {canManage && (
                       <div className="flex items-center gap-1 shrink-0">
                         <button

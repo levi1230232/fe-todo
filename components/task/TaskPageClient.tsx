@@ -13,7 +13,6 @@ import {
   Calendar,
   Folder,
   Trash2,
-  Archive,
 } from "lucide-react";
 
 import {
@@ -22,6 +21,8 @@ import {
   useTeamMemberMutations,
   useTeamMembers,
 } from "@/hooks/useTeam";
+import { useUser } from "@/hooks/useAuth";
+import { useTeamPermission } from "@/hooks/useTeamPermission";
 import { UserService } from "@/services/user.service";
 import { TeamMemberManager } from "@/components/TeamMember/TeamMemberManager";
 import { useCategory } from "@/hooks/useCategories";
@@ -44,6 +45,7 @@ export default function TaskPageClient() {
   const categoryId = categoryIdParam ? Number(categoryIdParam) : 0;
   const hasCategory = Boolean(categoryId > 0);
 
+  const { data: currentUser } = useUser();
   const { data: category } = useCategory(hasCategory ? categoryId : undefined);
   const { data: team } = useTeam(hasTeam ? teamId : undefined);
   const { data: members = [], isLoading: isLoadingMembers } =
@@ -53,6 +55,8 @@ export default function TaskPageClient() {
   const { mutateAsync: leaveTeam } = useLeaveTeam();
   const { addMember, removeMember, updateRole } =
     useTeamMemberMutations(teamId);
+
+  const permissions = useTeamPermission(currentUser, members);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"members" | "tags">(
@@ -70,6 +74,7 @@ export default function TaskPageClient() {
   >("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
   useEffect(() => {
     const handler = setTimeout(() => {
       setFilterText(searchTerm);
@@ -79,6 +84,7 @@ export default function TaskPageClient() {
       clearTimeout(handler);
     };
   }, [searchTerm]);
+
   const memoizedFilters = useMemo(
     () => ({
       search: filterText,
@@ -108,6 +114,7 @@ export default function TaskPageClient() {
       toast.error(error?.response?.data?.message);
     }
   };
+
   const handleChangeRole = async (memberId: number, newRole: string) => {
     try {
       await updateRole({ memberId, role: newRole });
@@ -115,22 +122,18 @@ export default function TaskPageClient() {
       toast.error(error?.response?.data?.message);
     }
   };
+
   const renderHeaderTitle = () => {
     const categoryName =
       category?.name || (hasCategory ? `Category #${categoryId}` : "");
     const teamName = team?.name || (hasTeam ? `Team #${teamId}` : "");
 
-    if (hasTeam && hasCategory) {
-      return `${teamName} • ${categoryName}`;
-    }
-    if (hasTeam) {
-      return teamName;
-    }
-    if (hasCategory) {
-      return categoryName;
-    }
+    if (hasTeam && hasCategory) return `${teamName} • ${categoryName}`;
+    if (hasTeam) return teamName;
+    if (hasCategory) return categoryName;
     return "Công Việc Cá Nhân";
   };
+
   const handleLeaveTeam = async () => {
     try {
       const res = await leaveTeam(teamId);
@@ -140,6 +143,7 @@ export default function TaskPageClient() {
       toast.error(error?.response?.data?.message);
     }
   };
+
   const renderHeaderDescription = () => {
     const categoryDesc = category?.description;
     const teamDesc = team?.description;
@@ -152,12 +156,9 @@ export default function TaskPageClient() {
         "Manage group tasks by category, labels, and members"
       );
     }
-    if (hasTeam) {
-      return teamDesc || "Manage team tasks, labels, and members";
-    }
-    if (hasCategory) {
+    if (hasTeam) return teamDesc || "Manage team tasks, labels, and members";
+    if (hasCategory)
       return categoryDesc || "Manage personal tasks in this category";
-    }
     return "Manage personal tasks and labels.";
   };
 
@@ -303,7 +304,6 @@ export default function TaskPageClient() {
               className="text-xs border border-slate-200 rounded-md px-2.5 py-1.5 bg-white text-slate-700 focus:outline-none cursor-pointer"
             >
               <option value="all">All tags</option>
-
               {!hasTeam ? (
                 <>
                   {tagPersonal.map((tag: Tag) => (
@@ -391,6 +391,9 @@ export default function TaskPageClient() {
             <TeamMemberManager
               members={members}
               teamId={teamId}
+              canManage={permissions.role === "OWNER"}
+              isOwner={permissions.role === "OWNER"}
+              isMemberOfTeam={Boolean(permissions.role)}
               onLeaveTeam={handleLeaveTeam}
               isLoading={isLoadingMembers}
               onSearchUserByEmail={async (email) => {
@@ -414,7 +417,9 @@ export default function TaskPageClient() {
             />
           )}
 
-          {activeTab === "tags" && <TagManager members={members} />}
+          {activeTab === "tags" && (
+            <TagManager canManage={!hasTeam || permissions.isAdminOrOwner} />
+          )}
         </div>
       </aside>
     </div>

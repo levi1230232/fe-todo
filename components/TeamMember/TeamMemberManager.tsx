@@ -6,7 +6,6 @@ import { MemberItem, MemberRole } from "./MemberItem";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 import { AddMemberForm } from "./AddMemberForm";
 import { LeaveTeamButton } from "./LeaveTeamButton";
-import { useUser } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 export interface TeamMember {
@@ -26,6 +25,9 @@ interface TeamMemberManagerProps {
   teamId: number;
   members: TeamMember[];
   isLoading?: boolean;
+  canManage?: boolean;
+  isOwner?: boolean;
+  isMemberOfTeam?: boolean;
   onSearchUserByEmail: (email: string) => Promise<SearchedUser | null>;
   onAddMember: (user: SearchedUser) => Promise<void> | void;
   onRemoveMember: (memberId: number) => Promise<void> | void;
@@ -37,6 +39,9 @@ export function TeamMemberManager({
   teamId,
   members = [],
   isLoading = false,
+  canManage = false,
+  isOwner = false,
+  isMemberOfTeam = false,
   onSearchUserByEmail,
   onAddMember,
   onRemoveMember,
@@ -46,17 +51,6 @@ export function TeamMemberManager({
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const { data: currentUser } = useUser();
-
-  const currentMember = members.find(
-    (m) => String(m.user.id) === String(currentUser?.id),
-  );
-
-  const canManage = currentMember?.role === "OWNER";
-
-  const isOwner = currentMember?.role === "OWNER";
-  const isMemberOfTeam = !!currentMember;
 
   const handleConfirmRemove = async () => {
     if (!memberToDelete || !canManage) return;

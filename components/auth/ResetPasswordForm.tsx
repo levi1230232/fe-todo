@@ -56,7 +56,6 @@ export default function ResetPasswordForm() {
 
       router.push("/login");
     } catch (error) {
-      console.error(error);
       toast.error("The link has expired or is invalid.");
     }
   };

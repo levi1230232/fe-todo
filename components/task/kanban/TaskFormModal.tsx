@@ -4,6 +4,8 @@ import React, { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { format, isValid, parseISO } from "date-fns";
+
 import {
   Task,
   TaskStatus,
@@ -37,30 +39,20 @@ export function TaskFormModal({
   availableTags = [],
 }: TaskFormModalProps) {
   const searchParams = useSearchParams();
-  const searchParamStyle = searchParams.get("workspaceStyle") as WorkspaceStyle;
 
+  const searchParamStyle = searchParams.get("workspaceStyle") as WorkspaceStyle;
   const workspaceStyle =
     searchParamStyle ||
     (isTeamWorkspace ? WorkspaceStyle.TEAM : WorkspaceStyle.PERSONAL);
 
-  const rawTeamId = searchParams.get("teamId");
-  const teamIdFromUrl = rawTeamId ? Number(rawTeamId) : null;
+  const teamIdFromUrl = searchParams.get("teamId")
+    ? Number(searchParams.get("teamId"))
+    : null;
+  const categoryIdFromUrl = searchParams.get("categoryId")
+    ? Number(searchParams.get("categoryId"))
+    : null;
 
-  const rawCategoryId = searchParams.get("categoryId");
-  const categoryIdFromUrl = rawCategoryId ? Number(rawCategoryId) : null;
-
-  const getMinDateTime = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    const hours = String(now.getHours()).padStart(2, "0");
-    const minutes = String(now.getMinutes()).padStart(2, "0");
-
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-
-  const minDateTime = getMinDateTime();
+  const minDateTime = format(new Date(), "yyyy-MM-dd'T'HH:mm");
 
   const {
     register,
@@ -77,11 +69,11 @@ export function TaskFormModal({
       priority: Priority.MEDIUM,
       status: defaultStatus,
       dueTo: "",
-      reminder: 5 as any,
+      reminder: 5,
       assignedTo: undefined,
       categoryId: isTeamWorkspace ? null : categoryIdFromUrl,
       tagIds: [],
-      workspaceStyle: workspaceStyle,
+      workspaceStyle,
       teamId: isTeamWorkspace ? teamIdFromUrl : null,
     },
   });
@@ -93,29 +85,19 @@ export function TaskFormModal({
 
     if (initialData) {
       const extractedTagIds =
-        initialData.taskTags?.map((item: any) =>
-          Number(item.tag ? item.tag.id : item.id),
+        initialData.taskTags?.map((item: { tag: Tag }) =>
+          Number(item.tag.id),
         ) || [];
 
       const parsedReminder = Number(initialData.reminder);
       const safeReminder = isNaN(parsedReminder) ? 5 : parsedReminder;
 
-      const parsedAssignedTo =
-        initialData.assignedTo !== null && initialData.assignedTo !== undefined
-          ? Number(initialData.assignedTo)
-          : undefined;
-
       let formattedDueTo = "";
       if (initialData.dueTo) {
-        const date = new Date(initialData.dueTo);
-        formattedDueTo = `${date.getFullYear()}-${String(
-          date.getMonth() + 1,
-        ).padStart(2, "0")}-${String(date.getDate()).padStart(
-          2,
-          "0",
-        )}T${String(date.getHours()).padStart(2, "0")}:${String(
-          date.getMinutes(),
-        ).padStart(2, "0")}`;
+        const parsedDate = parseISO(initialData.dueTo);
+        if (isValid(parsedDate)) {
+          formattedDueTo = format(parsedDate, "yyyy-MM-dd'T'HH:mm");
+        }
       }
 
       reset({
@@ -123,16 +105,18 @@ export function TaskFormModal({
         description: initialData.description || "",
         priority: initialData.priority || Priority.MEDIUM,
         status: initialData.status || defaultStatus,
-        reminder: Math.min(Math.max(safeReminder, 0), 120) as any,
+        reminder: Math.min(Math.max(safeReminder, 0), 120),
         dueTo: formattedDueTo,
-        assignedTo: parsedAssignedTo,
+        assignedTo: initialData.assignedTo
+          ? Number(initialData.assignedTo)
+          : undefined,
         categoryId: initialData.categoryId
           ? Number(initialData.categoryId)
           : isTeamWorkspace
             ? null
             : categoryIdFromUrl,
         tagIds: extractedTagIds,
-        workspaceStyle: workspaceStyle,
+        workspaceStyle,
         teamId: isTeamWorkspace
           ? initialData.teamId
             ? Number(initialData.teamId)
@@ -146,18 +130,18 @@ export function TaskFormModal({
         priority: Priority.MEDIUM,
         status: defaultStatus,
         dueTo: "",
-        reminder: 5 as any,
+        reminder: 5,
         assignedTo: undefined,
         categoryId: isTeamWorkspace ? null : categoryIdFromUrl,
         tagIds: [],
-        workspaceStyle: workspaceStyle,
+        workspaceStyle,
         teamId: isTeamWorkspace ? teamIdFromUrl : null,
       });
     }
   }, [
+    isOpen,
     initialData,
     defaultStatus,
-    isOpen,
     workspaceStyle,
     teamIdFromUrl,
     categoryIdFromUrl,
@@ -169,12 +153,9 @@ export function TaskFormModal({
 
   const toggleTag = (rawTagId: number | string) => {
     const tagId = Number(rawTagId);
-    const currentTags: number[] = Array.isArray(selectedTagIds)
-      ? selectedTagIds.map((id) => Number(id)).filter((id) => !isNaN(id))
-      : [];
+    const currentTags = selectedTagIds.map(Number).filter((id) => !isNaN(id));
 
-    const exists = currentTags.includes(tagId);
-    const nextTags = exists
+    const nextTags = currentTags.includes(tagId)
       ? currentTags.filter((id) => id !== tagId)
       : [...currentTags, tagId];
 
@@ -187,7 +168,7 @@ export function TaskFormModal({
 
   const onFormSubmit = (data: CreateTaskInput) => {
     const cleanTagIds = (data.tagIds ?? [])
-      .map((id) => Number(id))
+      .map(Number)
       .filter((id) => !isNaN(id));
 
     const payload: CreateTaskDto = {
@@ -207,7 +188,6 @@ export function TaskFormModal({
       tagIds: cleanTagIds,
     };
 
-    // console.log("Payload submit từ Modal:", payload);
     onSubmit(payload);
     onClose();
   };
@@ -228,12 +208,7 @@ export function TaskFormModal({
           </button>
         </div>
 
-        <form
-          onSubmit={handleSubmit(onFormSubmit, (errors) =>
-            console.log("Form errors:", errors),
-          )}
-          className="space-y-4"
-        >
+        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">
               Title <span className="text-red-500">*</span>
@@ -379,49 +354,51 @@ export function TaskFormModal({
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-              Add Tag (Tags)
-            </label>
-            {availableTags && availableTags.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 border border-slate-200 rounded-lg bg-slate-50">
-                {availableTags.map((tag) => {
-                  const tagIdNum = Number(tag.id);
-                  const isSelected = selectedTagIds
-                    .map(Number)
-                    .includes(tagIdNum);
+          {!initialData && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Add Tag (Tags)
+              </label>
+              {availableTags.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 border border-slate-200 rounded-lg bg-slate-50">
+                  {availableTags.map((tag) => {
+                    const tagIdNum = Number(tag.id);
+                    const isSelected = selectedTagIds
+                      .map(Number)
+                      .includes(tagIdNum);
 
-                  return (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      onClick={() => toggleTag(tag.id)}
-                      className={`text-xs px-2.5 py-1 rounded-md font-medium transition-all ${
-                        isSelected
-                          ? "ring-2 ring-offset-1 ring-blue-500 shadow-sm opacity-100"
-                          : "opacity-60 hover:opacity-100"
-                      }`}
-                      style={{
-                        backgroundColor: `${tag.color || "#64748b"}25`,
-                        color: tag.color || "#64748b",
-                      }}
-                    >
-                      #{tag.name} {isSelected && "✓"}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-xs text-slate-400 italic">
-                No tags available.
-              </p>
-            )}
-            {errors.tagIds && (
-              <p className="text-xs text-red-500 mt-1">
-                {errors.tagIds.message as string}
-              </p>
-            )}
-          </div>
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => toggleTag(tag.id)}
+                        className={`text-xs px-2.5 py-1 rounded-md font-medium transition-all ${
+                          isSelected
+                            ? "ring-2 ring-offset-1 ring-blue-500 shadow-sm opacity-100"
+                            : "opacity-60 hover:opacity-100"
+                        }`}
+                        style={{
+                          backgroundColor: `${tag.color || "#64748b"}25`,
+                          color: tag.color || "#64748b",
+                        }}
+                      >
+                        #{tag.name} {isSelected && "✓"}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 italic">
+                  No tags available.
+                </p>
+              )}
+              {errors.tagIds && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.tagIds.message as string}
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="pt-3 border-t flex items-center justify-end gap-2">
             <button

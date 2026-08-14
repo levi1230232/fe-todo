@@ -7,6 +7,7 @@ import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 import { AddMemberForm } from "./AddMemberForm";
 import { LeaveTeamButton } from "./LeaveTeamButton";
 import { useUser } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 export interface TeamMember {
   id: number;
@@ -64,8 +65,8 @@ export function TeamMemberManager({
       setIsDeleting(true);
       await onRemoveMember(parseInt(memberToDelete.user.id));
       setMemberToDelete(null);
-    } catch (error) {
-      console.error("Failed to delete member:", error);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message);
     } finally {
       setIsDeleting(false);
     }
@@ -76,8 +77,8 @@ export function TeamMemberManager({
 
     try {
       await changeRole(member.id, newRole);
-    } catch (error) {
-      console.error("Failed to change member role:", error);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message);
     }
   };
 

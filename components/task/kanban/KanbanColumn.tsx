@@ -9,7 +9,7 @@ import {
 import { Task, TaskStatus } from "@/types/task";
 import { SortableTaskCard } from "./SortableTaskCard";
 import { TeamMember } from "./types";
-import { useUser } from "@/hooks/useAuth";
+import { User } from "@/types/auth";
 
 interface KanbanColumnProps {
   column: {
@@ -24,6 +24,11 @@ interface KanbanColumnProps {
   onAddTask: (status: TaskStatus) => void;
   onDelete: (id: number) => void;
   teamMembers?: TeamMember[];
+  currentUser?: User | null;
+  canDrag?: (task: Task) => boolean;
+  canEdit?: (task: Task) => boolean;
+  canDelete?: (task: Task) => boolean;
+  canCreate?: boolean;
 }
 
 export function KanbanColumn({
@@ -34,33 +39,17 @@ export function KanbanColumn({
   onClickTask,
   onAddTask,
   teamMembers = [],
+  currentUser,
+  canDrag,
+  canEdit,
+  canDelete,
+  canCreate,
 }: KanbanColumnProps) {
-  const { data: user } = useUser();
   const { setNodeRef } = useDroppable({
     id: column.id,
   });
 
   const taskIds = useMemo(() => tasks.map((t) => t.id), [tasks]);
-
-  const canAddTask = useMemo(() => {
-    // Nếu chưa đăng nhập thì không thể thêm task
-    if (!user) return false;
-
-    // Trường hợp 1: Công việc cá nhân (không chọn team, teamMembers rỗng) -> Được quyền thêm task
-    if (!teamMembers || teamMembers.length === 0) {
-      return true;
-    }
-
-    // Trường hợp 2: Công việc nhóm -> Cần kiểm tra vai trò OWNER hoặc ADMIN
-    const currentMember = teamMembers.find(
-      (member) => String(member.user.id) === String(user.id),
-    );
-
-    if (!currentMember) return false;
-
-    const role = currentMember.role?.toLowerCase();
-    return role === "admin" || role === "owner";
-  }, [user, teamMembers]);
 
   return (
     <div
@@ -77,7 +66,7 @@ export function KanbanColumn({
           </span>
         </h2>
 
-        {canAddTask && (
+        {canCreate && (
           <button
             onClick={() => onAddTask(column.id)}
             title="Add task to this column"
@@ -103,13 +92,17 @@ export function KanbanColumn({
                 onDelete={onDelete}
                 onClickTask={onClickTask}
                 teamMembers={teamMembers}
+                currentUser={currentUser}
+                canDrag={canDrag}
+                canEdit={canEdit}
+                canDelete={canDelete}
               />
             ))
           )}
         </div>
       </SortableContext>
 
-      {canAddTask && (
+      {canCreate && (
         <button
           onClick={() => onAddTask(column.id)}
           className="mt-3 w-full py-2 px-3 border border-dashed border-slate-300 hover:border-blue-500 text-slate-500 hover:text-blue-600 hover:bg-white/60 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"

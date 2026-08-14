@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useForm } from "react-hook-form";
 import { Task, TaskStatus, Priority } from "@/types/task";
 import { Calendar, Trash2, UserCheck, Check, X, User } from "lucide-react";
 import { TeamMember } from "./types";
-import { useUser } from "@/hooks/useAuth";
 import { useSearchParams } from "next/navigation";
 import { useChangeTaskDeadline, useAssignTask } from "@/hooks/useTask";
+import { User as IUser } from "@/types/auth";
+import { format, isValid } from "date-fns";
+import { vi } from "date-fns/locale";
 
 export interface TaskCardContentProps {
   task: Task & {
@@ -21,12 +22,9 @@ export interface TaskCardContentProps {
   onClickTask?: (task: Task) => void;
   isOverlay?: boolean;
   teamMembers?: TeamMember[];
-  currentUserId?: number;
-  currentUserRole?: "OWNER" | "ADMIN" | "MEMBER" | string;
-}
-
-interface DeadlineFormData {
-  dueTo: string;
+  currentUser?: IUser | null;
+  canDelete?: boolean;
+  canEdit?: boolean;
 }
 
 export function TaskCardContent({
@@ -34,53 +32,38 @@ export function TaskCardContent({
   onDelete,
   onClickTask,
   teamMembers = [],
-  currentUserId: propUserId,
-  currentUserRole,
+  currentUser,
   isOverlay = false,
+  canDelete = false,
+  canEdit = false,
 }: TaskCardContentProps) {
-  const { data: user } = useUser();
   const searchParams = useSearchParams();
   const activeTaskId = searchParams.get("activeTaskId");
-  const [isClicked, setIsClicked] = useState(false);
+
   const [isEditingDate, setIsEditingDate] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
+  const [dueDateInput, setDueDateInput] = useState<string>("");
 
   const changeDeadlineMutation = useChangeTaskDeadline();
   const assignTaskMutation = useAssignTask();
 
-  const { register, handleSubmit, reset } = useForm<DeadlineFormData>({
-    defaultValues: {
-      dueTo: task.dueTo ? new Date(task.dueTo).toISOString().slice(0, 16) : "",
-    },
-  });
-
   useEffect(() => {
     if (task.dueTo) {
       const d = new Date(task.dueTo);
-      if (!isNaN(d.getTime())) {
-        reset({ dueTo: d.toISOString().slice(0, 16) });
+      if (isValid(d)) {
+        setDueDateInput(format(d, "yyyy-MM-dd'T'HH:mm"));
       }
+    } else {
+      setDueDateInput("");
     }
-  }, [task.dueTo, reset]);
+  }, [task.dueTo]);
 
-  const getMinDateTime = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    const hours = String(now.getHours()).padStart(2, "0");
-    const minutes = String(now.getMinutes()).padStart(2, "0");
-
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-
-  const minDateTime = getMinDateTime();
-
-  const onSaveDeadline = (data: DeadlineFormData) => {
-    if (!data.dueTo) return;
+  const handleSaveDeadline = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dueDateInput) return;
 
     changeDeadlineMutation.mutate(
-      { id: task.id, dueTo: new Date(data.dueTo).toISOString() },
+      { id: task.id, dueTo: new Date(dueDateInput).toISOString() },
       {
         onSuccess: () => {
           setIsEditingDate(false);
@@ -106,43 +89,23 @@ export function TaskCardContent({
   };
 
   const isActive = activeTaskId === String(task.id);
-  const effectiveUserId = user?.id ?? propUserId;
 
+  const creatorId = (task as any).createdBy ?? task.createdById;
   const isMyTask =
-    !!effectiveUserId &&
-    (task.assignedTo === effectiveUserId ||
-      task.createdById === effectiveUserId);
+    !!currentUser?.id &&
+    (task.assignedTo === currentUser.id || creatorId === currentUser.id);
 
-  const loggedInMember = effectiveUserId
-    ? teamMembers.find((m) => m.user?.id === effectiveUserId)
-    : null;
   const assignee = task.assignedTo
-    ? teamMembers.find((m) => m.user?.id === task.assignedTo)
+    ? teamMembers.find((m) => (m.user?.id ?? m.id) === task.assignedTo)
     : null;
-  const activeRole = currentUserRole ?? loggedInMember?.role;
 
-  const canDelete =
-    task.workspaceStyle === "PERSONAL" ||
-    (task.workspaceStyle === "TEAM" &&
-      (activeRole === "OWNER" || activeRole === "ADMIN"));
+  const formattedDueDate = (() => {
+    if (!task.dueTo) return null;
+    const d = new Date(task.dueTo);
+    return isValid(d) ? format(d, "HH:mm dd/MM/yyyy", { locale: vi }) : null;
+  })();
 
-  const formatDate = (dateString?: string | Date | number | null) => {
-    if (!dateString) return null;
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return null;
-
-    return new Intl.DateTimeFormat("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(date);
-  };
-
-  const formattedDueDate = formatDate(task.dueTo);
-
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = () => {
     if (isEditingDate || isAssigning) return;
     onClickTask?.(task);
   };
@@ -159,8 +122,6 @@ export function TaskCardContent({
         isMyTask
           ? "bg-white border-indigo-300 hover:border-indigo-400 hover:shadow-indigo-100/50 hover:shadow-md"
           : "bg-indigo-50/40 border-slate-200 hover:shadow-md"
-      } ${
-        isClicked ? "shadow-2xl border-blue-500 ring-2 ring-blue-400/50" : ""
       } ${
         isOverlay
           ? "shadow-2xl border-blue-500 rotate-2 cursor-grabbing scale-105 bg-white"
@@ -185,7 +146,6 @@ export function TaskCardContent({
                   ? "Medium"
                   : "Low"}
             </span>
-
             {isMyTask && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200">
                 <UserCheck className="w-3 h-3" />
@@ -247,7 +207,7 @@ export function TaskCardContent({
       >
         {task.workspaceStyle === "TEAM" && (
           <div className="shrink-0">
-            {isAssigning && canDelete ? (
+            {isAssigning && canEdit ? (
               <div className="flex items-center gap-1">
                 <select
                   defaultValue={task.assignedTo || ""}
@@ -256,7 +216,7 @@ export function TaskCardContent({
                   className="text-[11px] p-1 border rounded bg-white text-slate-700 outline-none focus:border-indigo-500 max-w-[100px]"
                 >
                   <option value="" disabled>
-                    Chọn...
+                    Select...
                   </option>
                   {teamMembers.map((m) => {
                     const uId = m.user?.id ?? m.id;
@@ -279,13 +239,17 @@ export function TaskCardContent({
             ) : (
               <div
                 onClick={() => {
-                  if (canDelete) {
+                  if (canEdit) {
                     setIsEditingDate(false);
                     setIsAssigning(true);
                   }
                 }}
-                className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-100 p-1 rounded-md transition-colors"
-                title="Change assignee"
+                className={`flex items-center gap-1.5 p-1 rounded-md transition-colors ${
+                  canEdit
+                    ? "cursor-pointer hover:bg-slate-100"
+                    : "cursor-default"
+                }`}
+                title={canEdit ? "Change assignee" : undefined}
               >
                 <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-semibold flex-shrink-0">
                   {assignee?.user?.name ? (
@@ -303,15 +267,16 @@ export function TaskCardContent({
         )}
 
         <div className="flex-1 flex justify-end min-w-0">
-          {isEditingDate && canDelete ? (
+          {isEditingDate && canEdit ? (
             <form
-              onSubmit={handleSubmit(onSaveDeadline)}
+              onSubmit={handleSaveDeadline}
               className="flex items-center gap-1 min-w-0 w-full justify-end"
             >
               <input
                 type="datetime-local"
-                min={minDateTime}
-                {...register("dueTo")}
+                min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+                value={dueDateInput}
+                onChange={(e) => setDueDateInput(e.target.value)}
                 className="text-[10px] px-1 py-0.5 border rounded bg-white text-slate-700 outline-none focus:border-indigo-500 w-full max-w-[130px] min-w-0"
               />
               <button
@@ -334,17 +299,21 @@ export function TaskCardContent({
           ) : (
             <div
               onClick={() => {
-                if (canDelete) {
+                if (canEdit) {
                   setIsAssigning(false);
                   setIsEditingDate(true);
                 }
               }}
-              className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/60 px-1.5 py-1 rounded transition-colors cursor-pointer group/date truncate"
-              title="Click to edit deadline"
+              className={`flex items-center gap-1 text-[11px] text-slate-400 px-1.5 py-1 rounded transition-colors group/date truncate ${
+                canEdit
+                  ? "cursor-pointer hover:text-indigo-600 hover:bg-indigo-50/60"
+                  : "cursor-default"
+              }`}
+              title={canEdit ? "Click to edit deadline" : undefined}
             >
               <Calendar className="w-3.5 h-3.5 group-hover/date:text-indigo-600 shrink-0" />
               <span className="truncate">
-                {formattedDueDate || "Thêm deadline"}
+                {formattedDueDate || "Add deadline"}
               </span>
             </div>
           )}

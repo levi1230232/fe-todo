@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect, useRef, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import React, { useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -10,88 +9,62 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragStartEvent,
-  DragEndEvent,
-  DragOverEvent,
   CollisionDetection,
   pointerWithin,
   rectIntersection,
 } from "@dnd-kit/core";
 
 import {
-  useMyTasks,
-  useTeamTasks,
-  useTasksByCategory,
-  useChangeTaskStatus,
   useSoftDeleteTask,
   useCreateTask,
   useUpdateTask,
   useAddTags,
   useAssignTask,
+  useRemoveTag,
 } from "@/hooks/useTask";
-import { useTeamMembers } from "@/hooks/useTeam";
-import { useGetPersonalTags, useGetTeamTags } from "@/hooks/useTag";
 
-import {
-  Task,
-  TaskStatus,
-  WorkspaceStyle,
-  Tag,
-  CreateTaskDto,
-} from "@/types/task";
+import { Task, TaskStatus, WorkspaceStyle, CreateTaskDto } from "@/types/task";
 import { KanbanColumn } from "./KanbanColumn";
 import { TaskCardContent } from "./TaskCardContent";
 import { TaskFormModal } from "./TaskFormModal";
 import { TaskDetailModal } from "./TaskDetailModal";
-import { COLUMNS, KanbanBoardProps, TeamMember } from "./types";
-import { useUser } from "@/hooks/useAuth";
+import { COLUMNS, KanbanBoardProps } from "./types";
+import { useKanbanTasks } from "@/hooks/useKanbanTasks";
+import { toast } from "sonner";
+
+const customCollisionDetectionAlgorithm: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  if (pointerCollisions.length > 0) return pointerCollisions;
+
+  const rectCollisions = rectIntersection(args);
+  if (rectCollisions.length > 0) return rectCollisions;
+
+  return closestCorners(args);
+};
 
 export default function KanbanBoard({
   teamId = null,
   filters,
 }: KanbanBoardProps) {
-  const searchParams = useSearchParams();
-  const categoryIdParam = searchParams.get("categoryId");
-  const categoryId = categoryIdParam ? Number(categoryIdParam) : null;
+  const {
+    tasks,
+    tasksByStatus,
+    isLoading,
+    isError,
+    error,
+    isTeamWorkspace,
+    availableTags,
+    teamMembers,
+    currentUser,
+    permissions,
+    activeTask,
+    dndHandlers,
+    changeStatus,
+  } = useKanbanTasks(teamId, filters);
 
-  const isTeamWorkspace = Boolean(teamId && teamId > 0);
-
-  const myTasksQuery = useMyTasks();
-  const teamTasksQuery = useTeamTasks(teamId ?? 0);
-  const categoryTasksQuery = useTasksByCategory(categoryId ?? 0);
-
-  const personalTagsQuery = useGetPersonalTags();
-  const teamTagsQuery = useGetTeamTags(teamId ?? 0);
-
-  const availableTags: Tag[] = isTeamWorkspace
-    ? teamTagsQuery.data || []
-    : personalTagsQuery.data || [];
-
-  const teamMembersQuery = useTeamMembers?.(teamId ?? 0);
-  const teamMembers: TeamMember[] = isTeamWorkspace
-    ? teamMembersQuery?.data || []
-    : [];
-  const { data: currentUser } = useUser();
-  const activeQuery = categoryId
-    ? categoryTasksQuery
-    : isTeamWorkspace
-      ? teamTasksQuery
-      : myTasksQuery;
-
-  const { data: rawData, isLoading, isError, error } = activeQuery;
-
-  const rawTasks: Task[] = useMemo(() => {
-    if (Array.isArray(rawData)) return rawData;
-    if (rawData && Array.isArray((rawData as any).tasks)) {
-      return (rawData as any).tasks;
-    }
-    return [];
-  }, [rawData]);
-
-  const changeStatusMutation = useChangeTaskStatus();
   const softDeleteMutation = useSoftDeleteTask();
-  const createTaskMutation = useCreateTask?.();
-  const updateTaskMutation = useUpdateTask?.();
+  const createTaskMutation = useCreateTask();
+  const updateTaskMutation = useUpdateTask();
   const addTagsMutation = useAddTags();
   const assignTaskMutation = useAssignTask();
 
@@ -103,219 +76,11 @@ export default function KanbanBoard({
   const [defaultColumnStatus, setDefaultColumnStatus] = useState<TaskStatus>(
     TaskStatus.PENDING,
   );
-
-  const [localTasks, setLocalTasks] = useState<Task[]>([]);
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
-
-  const initialTaskStatusRef = useRef<TaskStatus | null>(null);
-  const targetTaskStatusRef = useRef<TaskStatus | null>(null);
-
-  useEffect(() => {
-    if (Array.isArray(rawTasks)) {
-      setLocalTasks(rawTasks);
-    }
-  }, [rawTasks]);
-
+  const removeTagMutation = useRemoveTag();
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor),
   );
-  const customCollisionDetectionAlgorithm: CollisionDetection = (args) => {
-    const pointerCollisions = pointerWithin(args);
-    if (pointerCollisions.length > 0) {
-      return pointerCollisions;
-    }
-
-    const rectCollisions = rectIntersection(args);
-    if (rectCollisions.length > 0) {
-      return rectCollisions;
-    }
-
-    return closestCorners(args);
-  };
-
-  const filteredTasks = useMemo(() => {
-    return localTasks.filter((task) => {
-      if (
-        filters?.search &&
-        !task.title.toLowerCase().includes(filters.search.toLowerCase())
-      ) {
-        return false;
-      }
-
-      if (
-        filters?.priority &&
-        filters.priority !== "all" &&
-        task.priority !== filters.priority
-      ) {
-        return false;
-      }
-
-      if (isTeamWorkspace && filters?.assignee && filters.assignee !== "all") {
-        if (filters.assignee === "unassigned" && task.assignedTo !== null)
-          return false;
-        if (
-          filters.assignee !== "unassigned" &&
-          String(task.assignedTo) !== filters.assignee
-        )
-          return false;
-      }
-
-      if (filters?.tag && filters.tag !== "all") {
-        const hasTag = task.taskTags?.some(
-          ({ tag }) => tag.name.toLowerCase() === filters.tag?.toLowerCase(),
-        );
-        if (!hasTag) return false;
-      }
-
-      if (filters?.dueDateType && filters.dueDateType !== "all" && task.dueTo) {
-        const taskDate = new Date(task.dueTo);
-        const now = new Date();
-
-        if (filters.dueDateType === "today") {
-          if (taskDate.toDateString() !== now.toDateString()) return false;
-        } else if (filters.dueDateType === "this_week") {
-          const startOfWeek = new Date(now);
-          const day = startOfWeek.getDay();
-          const diff = day === 0 ? -6 : 1 - day;
-
-          startOfWeek.setDate(startOfWeek.getDate() + diff);
-          startOfWeek.setHours(0, 0, 0, 0);
-
-          const endOfWeek = new Date(startOfWeek);
-          endOfWeek.setDate(endOfWeek.getDate() + 6);
-          endOfWeek.setHours(23, 59, 59, 999);
-
-          if (taskDate < startOfWeek || taskDate > endOfWeek) return false;
-        } else if (filters.dueDateType === "overdue") {
-          if (taskDate >= now || task.status === TaskStatus.COMPLETED)
-            return false;
-        } else if (
-          filters.dueDateType === "custom" &&
-          filters.startDate &&
-          filters.endDate
-        ) {
-          const start = new Date(filters.startDate);
-          const end = new Date(filters.endDate);
-
-          start.setHours(0, 0, 0, 0);
-          end.setHours(23, 59, 59, 999);
-
-          if (taskDate < start || taskDate > end) return false;
-        }
-      }
-
-      return true;
-    });
-  }, [localTasks, filters, isTeamWorkspace]);
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const taskId = Number(event.active.id);
-    const task = localTasks.find((t) => t.id === taskId);
-    if (!task || !currentUser) return;
-
-    if (isTeamWorkspace && teamMembers.length > 0) {
-      const currentMember = teamMembers.find(
-        (m) => String(m.user?.id ?? m.id) === String(currentUser.id),
-      );
-      const role = currentMember?.role?.toUpperCase();
-
-      const isAssignee =
-        task.assignedTo && String(task.assignedTo) === String(currentUser.id);
-      const isCreator =
-        task.createBy && String(task.createBy) === String(currentUser.id);
-      const isAdminOrOwner = role === "ADMIN" || role === "OWNER";
-
-      if (!isAssignee && !isCreator && !isAdminOrOwner) {
-        return;
-      }
-    }
-
-    setActiveTask(task);
-    initialTaskStatusRef.current = task.status;
-    targetTaskStatusRef.current = task.status;
-  };
-
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    if (!over) return;
-
-    const taskId = Number(active.id);
-    let targetStatus: TaskStatus | null = null;
-
-    if (Object.values(TaskStatus).includes(over.id as TaskStatus)) {
-      targetStatus = over.id as TaskStatus;
-    } else {
-      const overTask = localTasks.find((task) => task.id === Number(over.id));
-      if (overTask) {
-        targetStatus = overTask.status;
-      }
-    }
-
-    if (!targetStatus) return;
-    targetTaskStatusRef.current = targetStatus;
-
-    setLocalTasks((prev) => {
-      const currentTask = prev.find((task) => task.id === taskId);
-      if (!currentTask || currentTask.status === targetStatus) {
-        return prev;
-      }
-
-      return prev.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              status: targetStatus!,
-            }
-          : task,
-      );
-    });
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    const taskId = Number(active.id);
-    const originalStatus = initialTaskStatusRef.current;
-    const targetStatus = targetTaskStatusRef.current;
-
-    setActiveTask(null);
-    initialTaskStatusRef.current = null;
-    targetTaskStatusRef.current = null;
-
-    if (!over || !originalStatus || !targetStatus) {
-      setLocalTasks(rawTasks);
-      return;
-    }
-
-    if (originalStatus === targetStatus) {
-      return;
-    }
-
-    changeStatusMutation.mutate(
-      {
-        id: taskId,
-        status: targetStatus,
-      },
-      {
-        onError: () => {
-          setLocalTasks((prev) =>
-            prev.map((task) =>
-              task.id === taskId
-                ? {
-                    ...task,
-                    status: originalStatus,
-                  }
-                : task,
-            ),
-          );
-        },
-      },
-    );
-  };
 
   const handleOpenDetail = (task: Task) => {
     setSelectedTask(task);
@@ -333,17 +98,13 @@ export default function KanbanBoard({
     setIsFormOpen(true);
   };
 
-  const mapTagsToTaskTags = (tagIds?: number[]) => {
-    if (!tagIds || tagIds.length === 0) return [];
-    return tagIds.map((id) => {
-      const tagObj = availableTags.find((tag) => tag.id === id);
-      return {
-        tag: tagObj || { id, name: "Tag", color: "#64748b" },
-      };
-    });
+  const handleDeleteTask = (id: number) => {
+    softDeleteMutation.mutate(id);
   };
-
-  const handleFormSubmit = (formData: CreateTaskDto) => {
+  const handleRemoveTag = (taskId: number, tagId: number) => {
+    removeTagMutation.mutate({ taskId, tagId });
+  };
+  const handleFormSubmit = async (formData: CreateTaskDto) => {
     const {
       tagIds,
       assignedTo,
@@ -360,114 +121,60 @@ export default function KanbanBoard({
     const finalTeamId = formTeamId ?? teamId ?? undefined;
     const numericReminder = Number(reminder) || 0;
 
-    if (editingTask) {
-      const updatePayload = {
-        ...baseDto,
-        reminder: numericReminder,
-        assignedTo: assignedTo ?? null,
-      };
+    try {
+      if (editingTask) {
+        const updatePayload = {
+          ...baseDto,
+          reminder: numericReminder,
+          assignedTo: assignedTo ?? null,
+        };
 
-      updateTaskMutation?.mutate(
-        {
+        await updateTaskMutation.mutateAsync({
           id: editingTask.id,
           dto: updatePayload,
-        },
-        {
-          onSuccess: () => {
-            if (tagIds !== undefined) {
-              addTagsMutation.mutate({ taskId: editingTask.id, tagIds });
-            }
+        });
 
-            if (
-              assignedTo !== undefined &&
-              assignedTo !== editingTask.assignedTo
-            ) {
-              if (assignedTo) {
-                assignTaskMutation.mutate({
-                  id: editingTask.id,
-                  assignedTo,
-                });
-              }
-            }
+        if (tagIds !== undefined) {
+          await addTagsMutation.mutateAsync({
+            taskId: editingTask.id,
+            tagIds,
+          });
+        }
 
-            setLocalTasks((prev) =>
-              prev.map((t) => {
-                if (t.id === editingTask.id) {
-                  const updatedTask = {
-                    ...t,
-                    ...baseDto,
-                    reminder: numericReminder,
-                    assignedTo: assignedTo ?? null,
-                    taskTags: mapTagsToTaskTags(tagIds),
-                  };
-                  return updatedTask as unknown as Task;
-                }
-                return t;
-              }),
-            );
-          },
-        },
-      );
-    } else {
-      const createPayload = {
-        ...baseDto,
-        reminder: numericReminder,
-        assignedTo: assignedTo ?? null,
-        teamId: finalTeamId,
-        workspaceStyle: finalWorkspaceStyle,
-      };
+        if (
+          assignedTo !== undefined &&
+          assignedTo !== editingTask.assignedTo &&
+          assignedTo !== null
+        ) {
+          await assignTaskMutation.mutateAsync({
+            id: editingTask.id,
+            assignedTo,
+          });
+        }
+      } else {
+        const createPayload = {
+          ...baseDto,
+          reminder: numericReminder,
+          assignedTo: assignedTo ?? null,
+          teamId: finalTeamId,
+          workspaceStyle: finalWorkspaceStyle,
+        };
 
-      createTaskMutation?.mutate(createPayload, {
-        onSuccess: async (response: any) => {
-          const createdTask: Task = response?.data || response;
+        const response = await createTaskMutation.mutateAsync(createPayload);
+        const createdTask: Task = response?.data || response;
 
-          if (!createdTask?.id) {
-            console.error("Không lấy được taskId sau khi tạo task");
-            return;
-          }
+        if (createdTask?.id && tagIds && tagIds.length > 0) {
+          await addTagsMutation.mutateAsync({
+            taskId: createdTask.id,
+            tagIds,
+          });
+        }
+      }
 
-          try {
-            if (tagIds && tagIds.length > 0) {
-              await addTagsMutation.mutateAsync({
-                taskId: createdTask.id,
-                tagIds,
-              });
-            }
-
-            const mappedTags = mapTagsToTaskTags(tagIds);
-
-            const fullNewTask: Task = {
-              ...createdTask,
-              reminder: numericReminder,
-              assignedTo: assignedTo ?? createdTask.assignedTo,
-              taskTags: mappedTags,
-            } as Task;
-
-            setLocalTasks((prev) => [...prev, fullNewTask]);
-          } catch (error) {
-            console.error("Lỗi khi tạo task hoặc gán tag:", error);
-
-            const fallbackTask: Task = {
-              ...createdTask,
-              reminder: numericReminder,
-              assignedTo: assignedTo ?? createdTask.assignedTo,
-              taskTags: [],
-            } as Task;
-
-            setLocalTasks((prev) => [...prev, fallbackTask]);
-          }
-        },
-
-        onError: (error) => {
-          console.error("Lỗi khi tạo task:", error);
-        },
-      });
+      setIsFormOpen(false);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message);
     }
-  };
-
-  const handleDeleteTask = (id: number) => {
-    setLocalTasks((prev) => prev.filter((t) => t.id !== id));
-    softDeleteMutation.mutate(id);
   };
 
   if (isLoading) {
@@ -478,51 +185,50 @@ export default function KanbanBoard({
     );
   }
 
-  if (isError) {
-    return (
-      <div className="p-8 text-center text-red-500 font-medium">
-        Error: {error?.message}
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4 w-full">
       <DndContext
         sensors={sensors}
-        // collisionDetection={closestCorners}
         collisionDetection={customCollisionDetectionAlgorithm}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
+        onDragStart={dndHandlers.handleDragStart}
+        onDragOver={dndHandlers.handleDragOver}
+        onDragEnd={dndHandlers.handleDragEnd}
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
           {COLUMNS.map((column) => {
-            const columnTasks =
-              filteredTasks.filter((task) => task.status === column.id) || [];
+            const columnTasks = tasksByStatus[column.id] || [];
 
             return (
               <KanbanColumn
                 key={column.id}
                 column={column}
                 tasks={columnTasks}
-                onChangeStatus={(id, status) => {
-                  setLocalTasks((prev) =>
-                    prev.map((t) => (t.id === id ? { ...t, status } : t)),
-                  );
-                  changeStatusMutation.mutate({ id, status });
-                }}
+                onChangeStatus={(id, status) => changeStatus(id, status)}
                 onDelete={handleDeleteTask}
                 onClickTask={handleOpenDetail}
                 onAddTask={handleOpenCreate}
                 teamMembers={teamMembers}
+                currentUser={currentUser}
+                canDrag={permissions.canDrag}
+                canEdit={permissions.canEdit}
+                canDelete={permissions.canDelete}
+                canCreate={permissions.canCreate}
               />
             );
           })}
         </div>
 
         <DragOverlay>
-          {activeTask ? <TaskCardContent task={activeTask} isOverlay /> : null}
+          {activeTask ? (
+            <TaskCardContent
+              task={activeTask}
+              isOverlay
+              teamMembers={teamMembers}
+              currentUser={currentUser}
+              canDelete={permissions.canDelete(activeTask)}
+              canEdit={permissions.canEdit(activeTask)}
+            />
+          ) : null}
         </DragOverlay>
       </DndContext>
 
@@ -532,21 +238,25 @@ export default function KanbanBoard({
         onClose={() => setIsDetailOpen(false)}
         onEdit={handleOpenEdit}
         onDelete={handleDeleteTask}
+        onRemoveTag={handleRemoveTag}
         teamMembers={teamMembers}
+        currentUser={currentUser}
+        canEditTask={selectedTask ? permissions.canEdit(selectedTask) : false}
+        canDeleteTask={
+          selectedTask ? permissions.canDelete(selectedTask) : false
+        }
       />
 
-      <Suspense fallback={null}>
-        <TaskFormModal
-          isOpen={isFormOpen}
-          onClose={() => setIsFormOpen(false)}
-          onSubmit={handleFormSubmit}
-          initialData={editingTask}
-          defaultStatus={defaultColumnStatus}
-          isTeamWorkspace={isTeamWorkspace}
-          teamMembers={teamMembers}
-          availableTags={availableTags}
-        />
-      </Suspense>
+      <TaskFormModal
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSubmit={handleFormSubmit}
+        initialData={editingTask}
+        defaultStatus={defaultColumnStatus}
+        isTeamWorkspace={isTeamWorkspace}
+        teamMembers={teamMembers}
+        availableTags={availableTags}
+      />
     </div>
   );
 }

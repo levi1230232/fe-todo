@@ -88,7 +88,6 @@ export default function CategoryFormModal({
     } catch (error: any) {
       const message = error.response?.data?.message || "An error occurred";
       toast.error(message);
-      console.error(message);
     }
   };
 

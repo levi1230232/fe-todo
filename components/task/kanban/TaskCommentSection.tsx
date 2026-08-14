@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useComment } from "@/hooks/useComment";
+import { Comment } from "@/types/comment";
 
 interface TaskCommentSectionProps {
   taskId: number;
@@ -26,27 +27,28 @@ export function TaskCommentSection({
     updateComment,
     isUpdating,
     deleteComment,
+    isDeleting,
   } = useComment(taskId);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim()) return;
+    if (!content.trim() || isCreating) return;
 
     try {
-      await createComment({ taskId, content: content.trim() });
+      await createComment({ taskId: Number(taskId), content: content.trim() });
       setContent("");
     } catch (error) {
       console.error("Failed to add comment:", error);
     }
   };
 
-  const handleStartEdit = (comment: any) => {
+  const handleStartEdit = (comment: Comment) => {
     setEditingCommentId(comment.id);
     setEditingContent(comment.content);
   };
 
   const handleSaveEdit = async (commentId: number) => {
-    if (!editingContent.trim()) return;
+    if (!editingContent.trim() || isUpdating) return;
 
     try {
       await updateComment({
@@ -60,6 +62,7 @@ export function TaskCommentSection({
   };
 
   const handleDelete = async (commentId: number) => {
+    if (isDeleting) return;
     try {
       await deleteComment(commentId);
     } catch (error) {
@@ -95,7 +98,7 @@ export function TaskCommentSection({
       ) : (
         <div className="space-y-2">
           {comments && comments.length > 0 ? (
-            comments.map((comment: any) => {
+            comments.map((comment: Comment) => {
               const isOwner =
                 currentUserId &&
                 (comment.userId === currentUserId ||
@@ -128,7 +131,7 @@ export function TaskCommentSection({
                           disabled={isUpdating}
                           className="px-2 py-1 text-[11px] bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                         >
-                          Save
+                          {isUpdating ? "Saving..." : "Save"}
                         </button>
                       </div>
                     </div>
@@ -155,11 +158,11 @@ export function TaskCommentSection({
                           )}
                         </div>
                       </div>
-                      <div className="flex justify-between">
-                        <p className="text-slate-600 whitespace-pre-wrap">
+                      <div className="flex justify-between items-start gap-2">
+                        <p className="text-slate-600 whitespace-pre-wrap flex-1">
                           {comment.content}
                         </p>
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 shrink-0">
                           {isOwner && (
                             <button
                               type="button"
@@ -175,7 +178,8 @@ export function TaskCommentSection({
                             <button
                               type="button"
                               onClick={() => handleDelete(comment.id)}
-                              className="text-[12px] text-red-500 hover:underline"
+                              disabled={isDeleting}
+                              className="text-[12px] text-red-500 hover:underline disabled:opacity-50"
                             >
                               Delete
                             </button>

@@ -46,7 +46,6 @@ export default function RegisterForm() {
         router.push("/login");
       },
       onError: (error: any) => {
-        console.error("Register Error:", error);
         const message =
           error?.response?.data?.message ||
           "Registration failed. Please try again!";

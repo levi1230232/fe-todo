@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { UpdateUserDto } from "@/types/auth";
 
 export const UserService = {
   getUserByEmail: async (email: string) => {
@@ -6,7 +7,7 @@ export const UserService = {
       params: { email },
     });
   },
-  updateProfile: async (data: any) => {
+  updateProfile: async (data: UpdateUserDto) => {
     return await api.put("/users/me", data);
   },
 };

@@ -8,10 +8,27 @@ import {
   ApiResponse,
   AddTagsResponse,
 } from "@/types/task";
+type TaskListPayload =
+  | Task[]
+  | { tasks: Task[] }
+  | { data: Task[] }
+  | { [key: string]: unknown };
+
+function normalizeTaskList(data: TaskListPayload | unknown): Task[] {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === "object") {
+    if ("tasks" in data && Array.isArray((data as { tasks: unknown }).tasks)) {
+      return (data as { tasks: Task[] }).tasks;
+    }
+    if ("data" in data && Array.isArray((data as { data: unknown }).data)) {
+      return (data as { data: Task[] }).data;
+    }
+  }
+  return [];
+}
 
 export const taskService = {
   async create(dto: CreateTaskDto): Promise<ApiResponse> {
-    // console.log("DTO:", dto);
     const response = await api.post<ApiResponse>("/tasks", dto);
     return response.data;
   },
@@ -65,28 +82,28 @@ export const taskService = {
   },
 
   async getMyTasks(): Promise<Task[]> {
-    const response = await api.get<Task[]>("/tasks/me");
-    return response.data;
+    const response = await api.get<any>("/tasks/me");
+    return normalizeTaskList(response.data);
   },
 
   async getTeamTasks(teamId: number): Promise<Task[]> {
-    const response = await api.get<Task[]>(`/tasks/team/${teamId}`);
-    return response.data;
+    const response = await api.get<any>(`/tasks/team/${teamId}`);
+    return normalizeTaskList(response.data);
   },
 
   async getTodayTasks(): Promise<Task[]> {
-    const response = await api.get<Task[]>("/tasks/today");
-    return response.data;
+    const response = await api.get<any>("/tasks/today");
+    return normalizeTaskList(response.data);
   },
 
   async getUpcomingTasks(): Promise<Task[]> {
-    const response = await api.get<Task[]>("/tasks/upcoming");
-    return response.data;
+    const response = await api.get<any>("/tasks/upcoming");
+    return normalizeTaskList(response.data);
   },
 
   async getOverdueTasks(): Promise<Task[]> {
-    const response = await api.get<Task[]>("/tasks/overdue");
-    return response.data;
+    const response = await api.get<any>("/tasks/overdue");
+    return normalizeTaskList(response.data);
   },
 
   async addTags(taskId: number, tagIds: number[]): Promise<AddTagsResponse> {
@@ -107,10 +124,12 @@ export const taskService = {
     const response = await api.delete<ApiResponse>(`/tasks/${id}/permanent`);
     return response.data;
   },
+
   async getTaskByCategory(id: number): Promise<Task[]> {
-    const response = await api.get<Task[]>(`/tasks/category/${id}`);
-    return response.data;
+    const response = await api.get<any>(`/tasks/category/${id}`);
+    return normalizeTaskList(response.data);
   },
+
   async getTaskDeleted(teamId?: number, categoryId?: number): Promise<Task[]> {
     const params: Record<string, number> = {};
 
@@ -120,10 +139,10 @@ export const taskService = {
       params.categoryId = categoryId;
     }
 
-    const response = await api.get<Task[]>("/tasks/deleted", {
+    const response = await api.get<any>("/tasks/deleted", {
       params,
     });
 
-    return response.data;
+    return normalizeTaskList(response.data);
   },
 };

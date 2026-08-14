@@ -44,7 +44,6 @@ export default function ForgotPasswordForm() {
 
       reset();
     } catch (err) {
-      console.error(err);
       toast.error("An error occurred. Please try again.");
     }
   };

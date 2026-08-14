@@ -44,12 +44,11 @@ export default function Header({ onOpenMobile }: HeaderProps) {
     setIsDropdownOpen(false);
     logout(undefined, {
       onSuccess: () => {
-        toast.success("Đăng xuất thành công");
+        toast.success("Logout successfully");
         router.replace("/login");
       },
-      onError: (error) => {
-        console.error("Logout error:", error);
-        toast.error("Có lỗi xảy ra khi đăng xuất");
+      onError: (error: any) => {
+        toast.error(error?.response?.data?.message);
       },
     });
   };

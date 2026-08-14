@@ -3,8 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { Task, Priority } from "@/types/task";
 import { TeamMember } from "./types";
-import { useRemoveTag } from "@/hooks/useTask";
-import { useUser } from "@/hooks/useAuth";
 import { TaskCommentSection } from "./TaskCommentSection";
 
 interface TaskDetailModalProps {
@@ -13,7 +11,11 @@ interface TaskDetailModalProps {
   onClose: () => void;
   onEdit: (task: Task) => void;
   onDelete: (id: number) => void;
+  onRemoveTag?: (taskId: number, tagId: number) => void;
   teamMembers?: TeamMember[];
+  currentUser?: TeamMember;
+  canEditTask?: boolean;
+  canDeleteTask?: boolean;
 }
 
 export function TaskDetailModal({
@@ -22,11 +24,12 @@ export function TaskDetailModal({
   onClose,
   onEdit,
   onDelete,
+  onRemoveTag,
   teamMembers = [],
+  currentUser,
+  canEditTask = false,
+  canDeleteTask = false,
 }: TaskDetailModalProps) {
-  const { data: user } = useUser();
-  const { mutate: removeTag } = useRemoveTag();
-
   const [localTaskTags, setLocalTaskTags] = useState(task?.taskTags || []);
 
   useEffect(() => {
@@ -37,16 +40,11 @@ export function TaskDetailModal({
 
   if (!isOpen || !task) return null;
 
-  const loggedInMember = user?.id
-    ? teamMembers.find((m) => m.user?.id === user.id)
+  const loggedInMember = currentUser?.id
+    ? teamMembers.find((m) => m.user?.id === currentUser.id)
     : null;
 
-  const activeRole = loggedInMember?.role;
-
-  const canModify =
-    task.workspaceStyle === "PERSONAL" ||
-    (task.workspaceStyle === "TEAM" &&
-      (activeRole === "OWNER" || activeRole === "ADMIN"));
+  const canModify = canEditTask || canDeleteTask;
 
   const assigneeId =
     typeof task.assignedTo === "object" && task.assignedTo !== null
@@ -69,7 +67,9 @@ export function TaskDetailModal({
       }),
     );
 
-    removeTag({ taskId: task.id, tagId });
+    if (onRemoveTag) {
+      onRemoveTag(task.id, tagId);
+    }
   };
 
   return (
@@ -93,27 +93,28 @@ export function TaskDetailModal({
           </span>
 
           <div className="flex items-center gap-2">
-            {canModify && (
-              <>
-                <button
-                  onClick={() => {
-                    onClose();
-                    onEdit(task);
-                  }}
-                  className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3 py-1.5 rounded-md transition-colors"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => {
-                    onDelete(task.id);
-                    onClose();
-                  }}
-                  className="text-xs bg-red-50 hover:bg-red-100 text-red-600 font-medium px-3 py-1.5 rounded-md transition-colors"
-                >
-                  Delete
-                </button>
-              </>
+            {canEditTask && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onEdit(task);
+                }}
+                className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3 py-1.5 rounded-md transition-colors"
+              >
+                Edit
+              </button>
+            )}
+
+            {canDeleteTask && (
+              <button
+                onClick={() => {
+                  onDelete(task.id);
+                  onClose();
+                }}
+                className="text-xs bg-red-50 hover:bg-red-100 text-red-600 font-medium px-3 py-1.5 rounded-md transition-colors"
+              >
+                Delete
+              </button>
             )}
 
             <button
@@ -196,14 +197,12 @@ export function TaskDetailModal({
             </div>
           )}
 
-          {task.workspaceStyle === "TEAM" ? (
+          {task.workspaceStyle === "TEAM" && (
             <TaskCommentSection
               taskId={task.id}
-              currentUserId={user?.id}
+              currentUserId={currentUser?.id}
               currentRole={loggedInMember?.role ?? "MEMBER"}
             />
-          ) : (
-            ""
           )}
         </div>
 

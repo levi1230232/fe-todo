@@ -1,7 +1,16 @@
 import axios from "axios";
 import { useAuthStore } from "@/store/auth.store";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const getBaseUrl = (): string => {
+  const url = process.env.NEXT_PUBLIC_API_URL;
+  if (!url) {
+    throw new Error(
+      "❌ [ENV ERROR]: Missing required environment variable 'NEXT_PUBLIC_API_URL'. Please check your .env.local or .env file!",
+    );
+  }
+  return url;
+};
+const BASE_URL = getBaseUrl();
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -26,23 +35,18 @@ api.interceptors.request.use((config) => {
 let refreshPromise: Promise<string> | null = null;
 
 api.interceptors.response.use(
-  (res) => res,
+  (response) => response,
 
   async (error) => {
     const originalRequest = error.config;
     const status = error.response?.status;
-    if (status === 403 && typeof window !== "undefined") {
-      const currentUrl = new URL(window.location.href);
-      const isTeamWorkspace =
-        currentUrl.searchParams.get("workspaceStyle") === "TEAM";
 
-      if (isTeamWorkspace) {
-        window.location.replace("/dashboard");
-        return Promise.reject(error);
-      }
+    if (!originalRequest) {
+      return Promise.reject(error);
     }
+
     if (
-      error.response?.status !== 401 ||
+      status !== 401 ||
       originalRequest._retry ||
       originalRequest.url?.includes("/auth/login") ||
       originalRequest.url?.includes("/auth/refresh")
@@ -68,15 +72,11 @@ api.interceptors.response.use(
 
       const newToken = await refreshPromise;
 
+      originalRequest.headers = originalRequest.headers ?? {};
       originalRequest.headers.Authorization = `Bearer ${newToken}`;
       return api(originalRequest);
     } catch (refreshError) {
       useAuthStore.getState().clearAuth();
-
-      if (typeof window !== "undefined") {
-        window.location.replace("/login");
-      }
-
       return Promise.reject(refreshError);
     }
   },

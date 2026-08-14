@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Search, Loader2, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { SearchedUser, TeamMember } from "./TeamMemberManager";
+import { toast } from "sonner";
 
 interface AddMemberFormProps {
   members: TeamMember[];
@@ -55,9 +56,11 @@ export function AddMemberForm({
           setFoundUser(user);
         }
       }
-    } catch (error) {
-      console.error("Lỗi khi tìm kiếm:", error);
-      setSearchError("Đã xảy ra lỗi khi tìm kiếm. Vui lòng thử lại sau.");
+    } catch (error: any) {
+      setSearchError(
+        "An error occurred while searching. Please try again later.",
+      );
+      toast.error(searchError);
     } finally {
       setIsSearching(false);
     }
@@ -70,8 +73,8 @@ export function AddMemberForm({
       setIsSubmitting(true);
       await onAddMember(foundUser);
       onCancel();
-    } catch (error) {
-      console.error("Lỗi khi thêm thành viên:", error);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message);
     } finally {
       setIsSubmitting(false);
     }

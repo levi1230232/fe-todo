@@ -1,18 +1,9 @@
+import { FilterState } from "@/lib/taskFilters";
 import { TaskStatus } from "@/types/task";
-
-export interface KanbanFilterProps {
-  search?: string;
-  tag?: string;
-  assignee?: string;
-  priority?: string;
-  dueDateType?: string;
-  startDate?: string;
-  endDate?: string;
-}
 
 export interface KanbanBoardProps {
   teamId?: number | null;
-  filters?: KanbanFilterProps;
+  filters?: FilterState;
 }
 
 export interface TeamMember {

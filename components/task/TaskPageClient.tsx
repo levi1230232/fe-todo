@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  Tag,
+  Tag as TagIcon,
   Users,
   X,
   PanelRightOpen,
@@ -16,7 +16,6 @@ import {
   Archive,
 } from "lucide-react";
 
-import KanbanBoard from "@/components/task/KanbanBoard";
 import {
   useLeaveTeam,
   useTeam,
@@ -29,6 +28,9 @@ import { useCategory } from "@/hooks/useCategories";
 import { useGetPersonalTags, useGetTeamTags } from "@/hooks/useTag";
 import { toast } from "sonner";
 import { TagManager } from "@/components/tag/TagManager";
+import KanbanBoard from "./kanban/KanbanBoard";
+import { TeamMember } from "@/types/team";
+import { Tag } from "@/types/task";
 
 export default function TaskPageClient() {
   const router = useRouter();
@@ -57,6 +59,7 @@ export default function TaskPageClient() {
     hasTeam ? "members" : "tags",
   );
 
+  const [searchTerm, setSearchTerm] = useState("");
   const [filterText, setFilterText] = useState("");
   const [selectedTag, setSelectedTag] = useState("all");
   const [selectedAssignee, setSelectedAssignee] = useState("all");
@@ -67,21 +70,49 @@ export default function TaskPageClient() {
   >("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setFilterText(searchTerm);
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm]);
+  const memoizedFilters = useMemo(
+    () => ({
+      search: filterText,
+      tag: selectedTag,
+      assignee: selectedAssignee,
+      priority: selectedPriority,
+      dueDateType: dueDateFilterType,
+      startDate,
+      endDate,
+    }),
+    [
+      filterText,
+      selectedTag,
+      selectedAssignee,
+      selectedPriority,
+      dueDateFilterType,
+      startDate,
+      endDate,
+    ],
+  );
 
   const handleRemoveMember = async (memberId: number) => {
     try {
       const res = await removeMember(memberId);
       toast.success(res.data.message);
     } catch (error: any) {
-      console.error("Failed to remove member:", error);
       toast.error(error?.response?.data?.message);
     }
   };
   const handleChangeRole = async (memberId: number, newRole: string) => {
     try {
       await updateRole({ memberId, role: newRole });
-    } catch (error) {
-      console.error("Failed to change role:", error);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message);
     }
   };
   const renderHeaderTitle = () => {
@@ -106,7 +137,6 @@ export default function TaskPageClient() {
       toast.success(res.data.message);
       router.push("/dashboard");
     } catch (error: any) {
-      console.log("Failed to leave team", error);
       toast.error(error?.response?.data?.message);
     }
   };
@@ -203,8 +233,8 @@ export default function TaskPageClient() {
             />
             <input
               type="text"
-              value={filterText}
-              onChange={(e) => setFilterText(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by task name..."
               className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 bg-slate-50/50"
             />
@@ -225,7 +255,7 @@ export default function TaskPageClient() {
                 >
                   <option value="all">All members</option>
                   <option value="unassigned">Unassign</option>
-                  {members.map((m: any) => (
+                  {members.map((m: TeamMember) => (
                     <option key={m.id} value={m.user.id}>
                       {m.user.name}
                     </option>
@@ -276,7 +306,7 @@ export default function TaskPageClient() {
 
               {!hasTeam ? (
                 <>
-                  {tagPersonal.map((tag: any) => (
+                  {tagPersonal.map((tag: Tag) => (
                     <option key={`personal-${tag.id}`} value={tag.id}>
                       {tag.name}
                     </option>
@@ -284,7 +314,7 @@ export default function TaskPageClient() {
                 </>
               ) : (
                 <>
-                  {tagTeam.map((tag: any) => (
+                  {tagTeam.map((tag: Tag) => (
                     <option key={`team-${tag.id}`} value={tag.name}>
                       {tag.name}
                     </option>
@@ -309,15 +339,7 @@ export default function TaskPageClient() {
         <main className="flex-1 p-6 overflow-y-auto">
           <KanbanBoard
             teamId={hasTeam ? teamId : null}
-            filters={{
-              search: filterText,
-              tag: selectedTag,
-              assignee: selectedAssignee,
-              priority: selectedPriority,
-              dueDateType: dueDateFilterType,
-              startDate,
-              endDate,
-            }}
+            filters={memoizedFilters}
           />
         </main>
       </div>
@@ -351,7 +373,7 @@ export default function TaskPageClient() {
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <Tag size={14} />
+              <TagIcon size={14} />
               <span>Tags</span>
             </button>
           </div>
@@ -379,8 +401,8 @@ export default function TaskPageClient() {
                     return null;
                   }
                   return userData;
-                } catch (error) {
-                  console.error("Không tìm thấy người dùng:", error);
+                } catch (error: any) {
+                  toast.error(error?.response?.data?.message);
                   return null;
                 }
               }}

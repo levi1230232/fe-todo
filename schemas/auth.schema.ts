@@ -1,41 +1,41 @@
-import { email, z } from "zod";
+import { z } from "zod";
 
 export const loginSchema = z.object({
-  email: z.email("Email không hợp lệ"),
-  password: z.string().min(6, "Tối thiểu 6 ký tự"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Must be at least 6 characters"),
 });
 
 export type LoginSchema = z.infer<typeof loginSchema>;
 
 export const registerSchema = z
   .object({
-    name: z.string().min(2, "Họ tên phải có ít nhất 2 ký tự"),
+    name: z.string().min(2, "Name must be at least 2 characters"),
 
-    email: z.email("Email không hợp lệ"),
+    email: z.string().email("Invalid email address"),
 
-    password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
 
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Mật khẩu xác nhận không khớp",
+    message: "Passwords do not match",
     path: ["confirmPassword"],
   });
 
 export type RegisterSchema = z.infer<typeof registerSchema>;
 
 export const forgotPasswordSchema = z.object({
-  email: z.email("Email không hợp lệ"),
+  email: z.string().email("Invalid email address"),
 });
 export type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
 
 export const resetPasswordSchema = z
   .object({
-    password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Mật khẩu xác nhận không khớp",
+    message: "Passwords do not match",
     path: ["confirmPassword"],
   });
 

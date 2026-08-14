@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useUser, useLogout } from "@/hooks/useAuth";
 import {
   useTodayTasks,
@@ -11,41 +12,13 @@ import {
 } from "@/hooks/useTask";
 import { useNotifications } from "@/hooks/useNotification";
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
-import {
-  Bell,
-  Calendar as CalendarIcon,
-  Clock,
-  AlertCircle,
-  ListTodo,
-  LogOut,
-  TrendingUp,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-
 import TaskList from "@/components/task/TaskList";
-import { Task } from "@/types/task";
-import { Notification } from "@/types/notification";
+
+import { DashboardHeader } from "./DashboardHeader";
+import { DashboardStats } from "./DashboardStats";
+import { DashboardChart } from "./DashboardChart";
+import { DashboardNotifications } from "./DashboardNotifications";
 
 const NOTIFICATION_LIMIT = 5;
 
@@ -70,11 +43,10 @@ export default function DashboardClient() {
     notifications,
     pagination,
     isLoading: isNotificationsLoading,
-  } = useNotifications({ page: notificationPage, limit: NOTIFICATION_LIMIT });
-
-  const notificationsList: Notification[] = useMemo(() => {
-    return notifications || [];
-  }, [notifications]);
+  } = useNotifications({
+    page: notificationPage,
+    limit: NOTIFICATION_LIMIT,
+  });
 
   const totalNotificationPages = useMemo(() => {
     if (pagination?.totalPages) return pagination.totalPages;
@@ -101,61 +73,9 @@ export default function DashboardClient() {
     });
   };
 
-  const todayCount = todayTasks?.length ?? 0;
-  const upcomingCount = upcomingTasks?.length ?? 0;
-  const overdueCount = overdueTasks?.length ?? 0;
-  const totalCount = myTasks?.length ?? 0;
-
-  const completedTasksByDate = useMemo(() => {
-    if (!myTasks) return [];
-
-    const dateCounts: Record<string, { count: number; date: Date }> = {};
-
-    const now = new Date();
-    const oneMonthAgo = new Date(now);
-    oneMonthAgo.setMonth(now.getMonth() - 1);
-
-    myTasks.forEach((task: Task) => {
-      if (task.status !== "COMPLETED") return;
-
-      const dateStr = task.updatedAt || task.createdAt;
-      if (!dateStr) return;
-
-      const taskDate = new Date(dateStr);
-
-      if (taskDate < oneMonthAgo || taskDate > now) return;
-
-      const formattedDate = taskDate.toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-      });
-
-      if (!dateCounts[formattedDate]) {
-        dateCounts[formattedDate] = {
-          count: 0,
-          date: taskDate,
-        };
-      }
-
-      dateCounts[formattedDate].count++;
-    });
-
-    return Object.entries(dateCounts)
-      .map(([date, { count, date: sortDate }]) => ({
-        date,
-        count,
-        sortDate,
-      }))
-      .sort((a, b) => a.sortDate.getTime() - b.sortDate.getTime())
-      .map(({ date, count }) => ({
-        date,
-        count,
-      }));
-  }, [myTasks]);
-
   if (isUserLoading) {
     return (
-      <div className=" flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <p className="text-slate-500">Loading...</p>
       </div>
     );
@@ -163,114 +83,40 @@ export default function DashboardClient() {
 
   if (!user) return null;
 
+  const todayCount = todayTasks?.length ?? 0;
+  const upcomingCount = upcomingTasks?.length ?? 0;
+  const overdueCount = overdueTasks?.length ?? 0;
+  const totalCount = myTasks?.length ?? 0;
+
   return (
     <div className="ml-0 md:ml-14 max-w-full p-6 space-y-8 bg-slate-50 min-h-screen">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl border bg-white p-6 shadow-sm">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">
-            Ready to conquer the day, {user.name}! 👋
-          </h1>
-        </div>
+      <DashboardHeader
+        userName={user.name}
+        isLoggingOut={isLoggingOut}
+        onLogout={handleLogout}
+      />
 
-        <Button
-          variant="destructive"
-          onClick={handleLogout}
-          disabled={isLoggingOut}
-          className="flex items-center gap-2"
-        >
-          <LogOut className="h-4 w-4" />
-          {isLoggingOut ? "Log out..." : "Logout"}
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-blue-500">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-slate-600">
-              Total tasks
-            </CardTitle>
-            <ListTodo className="h-5 w-5 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {isMyTasksLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                totalCount
-              )}
-            </div>
-            <p className="text-xs text-slate-500 mt-1">Personal tasks</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-amber-500">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-slate-600">
-              Today
-            </CardTitle>
-            <Clock className="h-5 w-5 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {isTodayLoading ? <Skeleton className="h-8 w-16" /> : todayCount}
-            </div>
-            <p className="text-xs text-slate-500 mt-1">
-              Needs to be completed today
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-emerald-500">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-slate-600">
-              Upcoming
-            </CardTitle>
-            <CalendarIcon className="h-5 w-5 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {isUpcomingLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                upcomingCount
-              )}
-            </div>
-            <p className="text-xs text-slate-500 mt-1">Upcoming tasks</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-rose-500">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-slate-600">
-              Overdue
-            </CardTitle>
-            <AlertCircle className="h-5 w-5 text-rose-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-rose-600">
-              {isOverdueLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                overdueCount
-              )}
-            </div>
-            <p className="text-xs text-slate-500 mt-1">
-              Requires Immediate Attention
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <DashboardStats
+        totalCount={totalCount}
+        todayCount={todayCount}
+        upcomingCount={upcomingCount}
+        overdueCount={overdueCount}
+        isMyTasksLoading={isMyTasksLoading}
+        isTodayLoading={isTodayLoading}
+        isUpcomingLoading={isUpcomingLoading}
+        isOverdueLoading={isOverdueLoading}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-4">
           <Tabs defaultValue="today" className="w-full">
             <TabsList className="grid w-full grid-cols-4 bg-slate-200/60 p-1">
-              <TabsTrigger value="today">Today({todayCount})</TabsTrigger>
+              <TabsTrigger value="today">Today ({todayCount})</TabsTrigger>
               <TabsTrigger value="upcoming">
                 Upcoming ({upcomingCount})
               </TabsTrigger>
               <TabsTrigger value="overdue" className="text-rose-600">
-                OverDue ({overdueCount})
+                Overdue ({overdueCount})
               </TabsTrigger>
               <TabsTrigger value="all">All ({totalCount})</TabsTrigger>
             </TabsList>
@@ -308,131 +154,18 @@ export default function DashboardClient() {
               />
             </TabsContent>
           </Tabs>
-          <Card className="flex flex-col justify-between">
-            <div>
-              <CardHeader className="flex flex-row items-center justify-between pb-3">
-                <CardTitle className="text-lg font-bold flex items-center gap-2">
-                  <Bell className="h-5 w-5 text-indigo-500" /> Notifications
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {isNotificationsLoading ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                  </div>
-                ) : notificationsList.length > 0 ? (
-                  notificationsList.map((item: Notification, idx: number) => (
-                    <div
-                      key={item.id || idx}
-                      className="p-3 bg-slate-100 rounded-lg text-sm space-y-1"
-                    >
-                      <p className="font-semibold text-slate-900 leading-snug">
-                        {item.title}
-                      </p>
-                      <p className="text-slate-600 leading-relaxed break-words">
-                        {item.content}
-                      </p>
-                      {item.createdAt && (
-                        <span className="text-xs text-slate-400 block">
-                          {new Date(item.createdAt).toLocaleString("vi-VN", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          })}
-                        </span>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-slate-500 py-4 text-center">
-                    No new notifications.
-                  </p>
-                )}
-              </CardContent>
-            </div>
 
-            {totalNotificationPages > 1 && (
-              <div className="flex items-center justify-between p-4 pt-0 border-t border-slate-100 mt-2">
-                <span className="text-xs text-slate-500">
-                  Page {notificationPage} / {totalNotificationPages}
-                </span>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() =>
-                      setNotificationPage((prev) => Math.max(prev - 1, 1))
-                    }
-                    disabled={notificationPage === 1 || isNotificationsLoading}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() =>
-                      setNotificationPage((prev) =>
-                        Math.min(prev + 1, totalNotificationPages),
-                      )
-                    }
-                    disabled={
-                      notificationPage >= totalNotificationPages ||
-                      isNotificationsLoading
-                    }
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-          </Card>
+          <DashboardNotifications
+            notifications={notifications || []}
+            isLoading={isNotificationsLoading}
+            page={notificationPage}
+            totalPages={totalNotificationPages}
+            onPageChange={setNotificationPage}
+          />
         </div>
 
         <div className="space-y-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-emerald-500" />
-                Completion Progress
-              </CardTitle>
-              <CardDescription>
-                Number of completed tasks by day
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="h-52 pt-0">
-              {completedTasksByDate.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={completedTasksByDate}
-                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                    <Tooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="count"
-                      stroke="#10b981"
-                      strokeWidth={2.5}
-                      dot={{ r: 4, fill: "#10b981" }}
-                      activeDot={{ r: 6 }}
-                      name="Tasks completed"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex items-center justify-center text-xs text-slate-400">
-                  No completed tasks yet.
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <DashboardChart tasks={myTasks} />
         </div>
       </div>
     </div>

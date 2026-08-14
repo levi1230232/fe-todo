@@ -4,13 +4,13 @@ export const teamSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(1, "Tên nhóm không được để trống")
-    .max(100, "Tên nhóm không được vượt quá 100 ký tự"),
+    .min(1, "Team name is required")
+    .max(100, "Team name must not exceed 100 characters"),
 
   description: z
     .string()
     .trim()
-    .max(500, "Mô tả không được vượt quá 500 ký tự")
+    .max(500, "Description must not exceed 500 characters")
     .optional()
     .default(""),
 });

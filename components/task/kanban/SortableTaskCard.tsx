@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Task, TaskStatus } from "@/types/task";
 import { TaskCardContent } from "./TaskCardContent";
 import { TeamMember } from "./types";
-import { useUser } from "@/hooks/useAuth";
+import { User } from "@/types/auth";
 
 interface SortableTaskCardProps {
   task: Task;
@@ -14,6 +14,10 @@ interface SortableTaskCardProps {
   onDelete: (id: number) => void;
   onClickTask?: (task: Task) => void;
   teamMembers?: TeamMember[];
+  currentUser?: User | null;
+  canDrag?: (task: Task) => boolean;
+  canEdit?: (task: Task) => boolean;
+  canDelete?: (task: Task) => boolean;
 }
 
 export function SortableTaskCard({
@@ -22,35 +26,14 @@ export function SortableTaskCard({
   onDelete,
   onClickTask,
   teamMembers = [],
+  currentUser,
+  canDrag,
+  canEdit,
+  canDelete,
 }: SortableTaskCardProps) {
-  const { data: user } = useUser();
-
-  const canDrag = useMemo(() => {
-    if (!user) return false;
-
-    if (task.workspaceStyle === "PERSONAL" || teamMembers.length === 0) {
-      return true;
-    }
-
-    const currentMember = teamMembers.find(
-      (m) => String(m.user?.id ?? m.id) === String(user.id),
-    );
-    const role = currentMember?.role?.toUpperCase();
-
-    if (role === "ADMIN" || role === "OWNER") {
-      return true;
-    }
-
-    if (task.assignedTo && String(task.assignedTo) === String(user.id)) {
-      return true;
-    }
-
-    if (task.createBy && String(task.createBy) === String(user.id)) {
-      return true;
-    }
-
-    return false;
-  }, [user, task, teamMembers]);
+  const isDragDisabled = canDrag ? !canDrag(task) : false;
+  const isEditable = canEdit ? canEdit(task) : true;
+  const isDeletable = canDelete ? canDelete(task) : true;
 
   const {
     attributes,
@@ -61,10 +44,10 @@ export function SortableTaskCard({
     isDragging,
   } = useSortable({
     id: task.id,
-    disabled: !canDrag,
+    disabled: isDragDisabled,
   });
 
-  const style = {
+  const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.3 : 1,
@@ -76,9 +59,11 @@ export function SortableTaskCard({
       style={style}
       {...attributes}
       {...listeners}
-      className={`${
-        canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
-      } touch-none`}
+      className={`select-none touch-none rounded-xl transition-shadow ${
+        isDragDisabled
+          ? "cursor-pointer"
+          : "cursor-grab active:cursor-grabbing hover:shadow-md"
+      }`}
     >
       <TaskCardContent
         task={task}
@@ -86,6 +71,9 @@ export function SortableTaskCard({
         onDelete={onDelete}
         onClickTask={onClickTask}
         teamMembers={teamMembers}
+        currentUser={currentUser}
+        canDelete={isDeletable}
+        canEdit={isEditable}
       />
     </div>
   );

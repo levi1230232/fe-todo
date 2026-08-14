@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface LeaveTeamButtonProps {
   onLeaveTeam?: () => Promise<void> | void;
@@ -33,8 +34,8 @@ export function LeaveTeamButton({
       setIsLeaving(true);
       await onLeaveTeam();
       setIsOpen(false);
-    } catch (error) {
-      console.error("Failed to leave team:", error);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message);
     } finally {
       setIsLeaving(false);
     }

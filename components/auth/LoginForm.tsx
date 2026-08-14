@@ -43,7 +43,6 @@ export default function LoginForm() {
         router.push("/dashboard");
       },
       onError: (err: any) => {
-        console.error(err);
         const message =
           err?.response?.data?.message || "Invalid email or password  ";
         toast.error(message);

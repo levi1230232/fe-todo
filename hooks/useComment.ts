@@ -5,20 +5,26 @@ import { CreateCommentDto, UpdateCommentDto } from "@/types/comment";
 export const useComment = (taskId?: number) => {
   const queryClient = useQueryClient();
 
-  const commentsQueryKey = ["comments", taskId];
+  const numericTaskId = taskId ? Number(taskId) : undefined;
+  const commentsQueryKey = ["comments", numericTaskId];
 
   const commentsQuery = useQuery({
     queryKey: commentsQueryKey,
     queryFn: () =>
-      CommentService.getCommentByTask(taskId!).then((res) => res.data),
-    enabled: !!taskId,
+      CommentService.getCommentByTask(numericTaskId!).then((res) => res.data),
+    enabled: !!numericTaskId,
+    refetchInterval: 3000,
+    refetchIntervalInBackground: false,
   });
 
   const createMutation = useMutation({
     mutationFn: (data: CreateCommentDto) => CommentService.createComment(data),
     onSuccess: (_, variables) => {
+      const targetTaskId = variables.taskId
+        ? Number(variables.taskId)
+        : numericTaskId;
       queryClient.invalidateQueries({
-        queryKey: ["comments", variables.taskId],
+        queryKey: ["comments", targetTaskId],
       });
     },
   });
@@ -27,8 +33,12 @@ export const useComment = (taskId?: number) => {
     mutationFn: ({ id, data }: { id: number; data: UpdateCommentDto }) =>
       CommentService.updateComment(id, data),
     onSuccess: () => {
-      if (taskId) {
-        queryClient.invalidateQueries({ queryKey: commentsQueryKey });
+      if (numericTaskId) {
+        queryClient.invalidateQueries({
+          queryKey: commentsQueryKey,
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["comments"] });
       }
     },
   });
@@ -36,8 +46,12 @@ export const useComment = (taskId?: number) => {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => CommentService.deleteComment(id),
     onSuccess: () => {
-      if (taskId) {
-        queryClient.invalidateQueries({ queryKey: commentsQueryKey });
+      if (numericTaskId) {
+        queryClient.invalidateQueries({
+          queryKey: commentsQueryKey,
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["comments"] });
       }
     },
   });

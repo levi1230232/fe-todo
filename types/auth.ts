@@ -19,3 +19,13 @@ export interface ResetPasswordDto {
   token: string;
   password: string;
 }
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: "ADMIN" | "USER";
+}
+export interface UpdateUserDto {
+  name?: string;
+}

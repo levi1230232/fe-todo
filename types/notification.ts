@@ -11,5 +11,5 @@ export interface Notification {
   content: string;
   type: NotificationType;
   isRead: boolean;
-  createdAt: Date;
+  createdAt: string;
 }

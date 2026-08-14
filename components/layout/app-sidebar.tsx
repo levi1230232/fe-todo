@@ -115,7 +115,6 @@ export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
       toast.success(res.data.message);
       router.push("/dashboard");
     } catch (error: any) {
-      console.error("An error occurred while deleting the category:", error);
       toast.error(error.response?.data?.message);
     }
   };
@@ -155,7 +154,6 @@ export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
       toast.success(res.data.message);
       router.push("/dashboard");
     } catch (error: any) {
-      console.error("Lỗi khi xóa team:", error);
       toast.error(error.response?.data?.message);
     }
   };

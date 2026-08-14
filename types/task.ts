@@ -46,40 +46,56 @@ export interface Task {
   id: number;
   title: string;
   description?: string;
+
   priority: Priority;
   status: TaskStatus;
-  dueTo?: string;
+
+  dueTo: string | null;
   reminder?: number;
+
   workspaceStyle: WorkspaceStyle;
+
   teamId?: number | null;
   categoryId?: number | null;
+
   createBy: number;
   assignedTo?: number | null;
+
   isSoftDelete: boolean;
+
   createdAt: string;
   updatedAt: string;
+
   creator?: UserSummary;
   assignee?: UserSummary;
   category?: CategorySummary;
   team?: TeamSummary | null;
-  taskTags?: { tag: Tag }[];
+
+  taskTags?: {
+    tag: Tag;
+  }[];
 }
 
 export interface CreateTaskDto {
   title: string;
   description?: string;
+
   priority?: Priority;
   status: TaskStatus;
-  dueTo: string;
-  reminder: number;
+
+  dueTo?: string | null;
+  reminder?: number;
+
   workspaceStyle: WorkspaceStyle;
+
   teamId?: number | null;
   categoryId?: number | null;
   assignedTo?: number | null;
+
   tagIds?: number[];
 }
 
-export interface UpdateTaskDto extends Partial<CreateTaskDto> {}
+export type UpdateTaskDto = Partial<CreateTaskDto>;
 
 export interface ApiResponse<T = any> {
   message: string;

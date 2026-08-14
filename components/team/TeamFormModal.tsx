@@ -80,7 +80,6 @@ export default function TeamFormModal({
         onClose();
       }
     } catch (error: any) {
-      console.error("Error saving team information:", error);
       toast.error(error?.response?.data?.message);
     }
   };

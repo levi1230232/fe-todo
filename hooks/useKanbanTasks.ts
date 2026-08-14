@@ -20,6 +20,7 @@ import {
   groupTasksByStatus,
 } from "@/lib/taskFilters";
 import { TeamMember } from "@/components/task/kanban/types";
+import { User } from "@/types/auth";
 
 export function useKanbanTasks(teamId: number | null, filters?: FilterState) {
   const searchParams = useSearchParams();
@@ -44,7 +45,7 @@ export function useKanbanTasks(teamId: number | null, filters?: FilterState) {
     ? teamMembersQuery.data || []
     : [];
 
-  const { data: currentUser } = useUser();
+  const { data: currentUser } = useUser() as { data: User | undefined };
   const permissions = useTeamPermission(currentUser, teamMembers);
 
   const activeQuery = categoryId

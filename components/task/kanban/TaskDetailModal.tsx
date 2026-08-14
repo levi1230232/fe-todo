@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Task, Priority } from "@/types/task";
 import { TeamMember } from "./types";
 import { TaskCommentSection } from "./TaskCommentSection";
+import { User } from "@/types/auth";
 
 interface TaskDetailModalProps {
   task: Task | null;
@@ -13,7 +14,7 @@ interface TaskDetailModalProps {
   onDelete: (id: number) => void;
   onRemoveTag?: (taskId: number, tagId: number) => void;
   teamMembers?: TeamMember[];
-  currentUser?: TeamMember;
+  currentUser?: User;
   canEditTask?: boolean;
   canDeleteTask?: boolean;
 }

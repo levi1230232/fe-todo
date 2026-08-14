@@ -354,51 +354,49 @@ export function TaskFormModal({
             </div>
           </div>
 
-          {!initialData && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                Add Tag (Tags)
-              </label>
-              {availableTags.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 border border-slate-200 rounded-lg bg-slate-50">
-                  {availableTags.map((tag) => {
-                    const tagIdNum = Number(tag.id);
-                    const isSelected = selectedTagIds
-                      .map(Number)
-                      .includes(tagIdNum);
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+              Add Tag (Tags)
+            </label>
+            {availableTags.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 border border-slate-200 rounded-lg bg-slate-50">
+                {availableTags.map((tag) => {
+                  const tagIdNum = Number(tag.id);
+                  const isSelected = selectedTagIds
+                    .map(Number)
+                    .includes(tagIdNum);
 
-                    return (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => toggleTag(tag.id)}
-                        className={`text-xs px-2.5 py-1 rounded-md font-medium transition-all ${
-                          isSelected
-                            ? "ring-2 ring-offset-1 ring-blue-500 shadow-sm opacity-100"
-                            : "opacity-60 hover:opacity-100"
-                        }`}
-                        style={{
-                          backgroundColor: `${tag.color || "#64748b"}25`,
-                          color: tag.color || "#64748b",
-                        }}
-                      >
-                        #{tag.name} {isSelected && "✓"}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-xs text-slate-400 italic">
-                  No tags available.
-                </p>
-              )}
-              {errors.tagIds && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.tagIds.message as string}
-                </p>
-              )}
-            </div>
-          )}
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => toggleTag(tag.id)}
+                      className={`text-xs px-2.5 py-1 rounded-md font-medium transition-all ${
+                        isSelected
+                          ? "ring-2 ring-offset-1 ring-blue-500 shadow-sm opacity-100"
+                          : "opacity-60 hover:opacity-100"
+                      }`}
+                      style={{
+                        backgroundColor: `${tag.color || "#64748b"}25`,
+                        color: tag.color || "#64748b",
+                      }}
+                    >
+                      #{tag.name} {isSelected && "✓"}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400 italic">
+                No tags available.
+              </p>
+            )}
+            {errors.tagIds && (
+              <p className="text-xs text-red-500 mt-1">
+                {errors.tagIds.message as string}
+              </p>
+            )}
+          </div>
 
           <div className="pt-3 border-t flex items-center justify-end gap-2">
             <button

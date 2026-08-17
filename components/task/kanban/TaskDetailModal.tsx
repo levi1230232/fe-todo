@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Task, Priority } from "@/types/task";
+import { Task, Priority, Tag } from "@/types/task";
 import { TeamMember } from "./types";
 import { TaskCommentSection } from "./TaskCommentSection";
 import { User } from "@/types/auth";
@@ -31,7 +31,9 @@ export function TaskDetailModal({
   canEditTask = false,
   canDeleteTask = false,
 }: TaskDetailModalProps) {
-  const [localTaskTags, setLocalTaskTags] = useState(task?.taskTags || []);
+  const [localTaskTags, setLocalTaskTags] = useState<{ tag: Tag }[]>(
+    task?.taskTags || [],
+  );
 
   useEffect(() => {
     if (task) {
@@ -62,10 +64,7 @@ export function TaskDetailModal({
     if (!task.id) return;
 
     setLocalTaskTags((prev) =>
-      prev.filter((item) => {
-        const currentTagId = item.tag?.id || (item as any).id;
-        return String(currentTagId) !== String(tagId);
-      }),
+      prev.filter(({ tag }) => Number(tag.id) !== Number(tagId)),
     );
 
     if (onRemoveTag) {
@@ -98,7 +97,10 @@ export function TaskDetailModal({
               <button
                 onClick={() => {
                   onClose();
-                  onEdit(task);
+                  onEdit({
+                    ...task,
+                    taskTags: localTaskTags,
+                  });
                 }}
                 className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3 py-1.5 rounded-md transition-colors"
               >
@@ -168,12 +170,11 @@ export function TaskDetailModal({
                 Tags
               </h4>
               <div className="flex flex-wrap gap-1.5">
-                {localTaskTags.map((item, index) => {
-                  const tag = item.tag || item;
-                  if (!tag || !tag.id) return null;
+                {localTaskTags.map(({ tag }) => {
+                  if (!tag?.id) return null;
                   return (
                     <span
-                      key={tag.id || index}
+                      key={tag.id}
                       className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md font-medium group transition-all"
                       style={{
                         backgroundColor: `${tag.color || "#64748b"}20`,
@@ -184,7 +185,7 @@ export function TaskDetailModal({
                       {canModify && (
                         <button
                           type="button"
-                          onClick={() => handleRemoveTag(tag.id)}
+                          onClick={() => handleRemoveTag(Number(tag.id))}
                           className="opacity-60 hover:opacity-100 hover:bg-black/10 rounded-full w-4 h-4 inline-flex items-center justify-center transition-all text-[10px]"
                           title="Remove tag"
                         >

@@ -68,7 +68,6 @@ export function SortableTaskCard({
           : ""
       }`}
     >
-      {/* Ẩn nội dung thẻ gốc khi đang kéo, giữ nguyên kích thước để tạo slot trống */}
       <div
         className={
           isDragging

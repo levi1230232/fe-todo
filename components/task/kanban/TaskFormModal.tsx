@@ -85,9 +85,9 @@ export function TaskFormModal({
 
     if (initialData) {
       const extractedTagIds =
-        initialData.taskTags?.map((item: { tag: Tag }) =>
-          Number(item.tag.id),
-        ) || [];
+        initialData.taskTags
+          ?.map(({ tag }) => Number(tag.id))
+          .filter((id) => !isNaN(id)) || [];
 
       const parsedReminder = Number(initialData.reminder);
       const safeReminder = isNaN(parsedReminder) ? 5 : parsedReminder;

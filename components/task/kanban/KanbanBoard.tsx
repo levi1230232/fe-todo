@@ -104,7 +104,22 @@ export default function KanbanBoard({
   };
 
   const handleRemoveTag = (taskId: number, tagId: number) => {
-    removeTagMutation.mutate({ taskId, tagId });
+    removeTagMutation.mutate(
+      { taskId, tagId },
+      {
+        onSuccess: () => {
+          setSelectedTask((prev) => {
+            if (!prev || prev.id !== taskId) return prev;
+            return {
+              ...prev,
+              taskTags: (prev.taskTags || []).filter(
+                ({ tag }) => Number(tag.id) !== Number(tagId),
+              ),
+            };
+          });
+        },
+      },
+    );
   };
 
   const handleFormSubmit = async (formData: CreateTaskDto) => {

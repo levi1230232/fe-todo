@@ -50,7 +50,6 @@ export function SortableTaskCard({
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.3 : 1,
   };
 
   return (
@@ -59,22 +58,35 @@ export function SortableTaskCard({
       style={style}
       {...attributes}
       {...listeners}
-      className={`select-none touch-none rounded-xl transition-shadow ${
+      className={`relative select-none touch-none rounded-xl transition-all duration-200 ${
         isDragDisabled
           ? "cursor-pointer"
           : "cursor-grab active:cursor-grabbing hover:shadow-md"
+      } ${
+        isDragging
+          ? "border-2 border-dashed border-slate-300/80 bg-slate-100/50 dark:bg-slate-800/40 rounded-xl"
+          : ""
       }`}
     >
-      <TaskCardContent
-        task={task}
-        onChangeStatus={onChangeStatus}
-        onDelete={onDelete}
-        onClickTask={onClickTask}
-        teamMembers={teamMembers}
-        currentUser={currentUser}
-        canDelete={isDeletable}
-        canEdit={isEditable}
-      />
+      {/* Ẩn nội dung thẻ gốc khi đang kéo, giữ nguyên kích thước để tạo slot trống */}
+      <div
+        className={
+          isDragging
+            ? "invisible opacity-0 pointer-events-none"
+            : "opacity-100 transition-opacity"
+        }
+      >
+        <TaskCardContent
+          task={task}
+          onChangeStatus={onChangeStatus}
+          onDelete={onDelete}
+          onClickTask={onClickTask}
+          teamMembers={teamMembers}
+          currentUser={currentUser}
+          canDelete={isDeletable}
+          canEdit={isEditable}
+        />
+      </div>
     </div>
   );
 }

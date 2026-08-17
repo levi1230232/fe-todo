@@ -45,7 +45,7 @@ export function KanbanColumn({
   canDelete,
   canCreate,
 }: KanbanColumnProps) {
-  const { setNodeRef } = useDroppable({
+  const { setNodeRef, isOver } = useDroppable({
     id: column.id,
   });
 
@@ -54,10 +54,16 @@ export function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col rounded-xl border-2 p-3.5 min-h-[550px] transition-colors ${column.color} h-full`}
+      className={`flex flex-col rounded-xl border-2 p-3.5 min-h-[550px] transition-all duration-200 ${
+        column.color
+      } ${
+        isOver
+          ? "ring-2 ring-blue-400/50 border-blue-400 bg-white/40 dark:bg-slate-900/40"
+          : ""
+      } h-full`}
     >
       <div className="flex shrink-0 items-center justify-between mb-3 px-1">
-        <h2 className="font-bold text-slate-700 text-sm flex items-center gap-2">
+        <h2 className="font-bold text-slate-700 dark:text-slate-200 text-sm flex items-center gap-2">
           <span>{column.title}</span>
           <span
             className={`text-xs px-2 py-0.5 rounded-full font-semibold shadow-sm ${column.badgeColor}`}
@@ -80,7 +86,7 @@ export function KanbanColumn({
       <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
         <div className="flex-1 space-y-3">
           {tasks.length === 0 ? (
-            <div className="h-32 flex items-center justify-center border-2 border-dashed border-slate-200/80 rounded-lg text-xs text-slate-400 font-medium">
+            <div className="h-32 flex items-center justify-center border-2 border-dashed border-slate-200/80 dark:border-slate-700/80 rounded-lg text-xs text-slate-400 font-medium">
               No tasks available
             </div>
           ) : (

@@ -67,6 +67,7 @@ export default function KanbanBoard({
   const updateTaskMutation = useUpdateTask();
   const addTagsMutation = useAddTags();
   const assignTaskMutation = useAssignTask();
+  const removeTagMutation = useRemoveTag();
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -76,7 +77,7 @@ export default function KanbanBoard({
   const [defaultColumnStatus, setDefaultColumnStatus] = useState<TaskStatus>(
     TaskStatus.PENDING,
   );
-  const removeTagMutation = useRemoveTag();
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor),
@@ -101,9 +102,11 @@ export default function KanbanBoard({
   const handleDeleteTask = (id: number) => {
     softDeleteMutation.mutate(id);
   };
+
   const handleRemoveTag = (taskId: number, tagId: number) => {
     removeTagMutation.mutate({ taskId, tagId });
   };
+
   const handleFormSubmit = async (formData: CreateTaskDto) => {
     const {
       tagIds,
@@ -173,7 +176,7 @@ export default function KanbanBoard({
 
       setIsFormOpen(false);
     } catch (error: any) {
-      toast.error(error?.response?.data?.message);
+      toast.error(error?.response?.data?.message || "Something went wrong");
     }
   };
 
@@ -218,16 +221,23 @@ export default function KanbanBoard({
           })}
         </div>
 
-        <DragOverlay>
+        <DragOverlay
+          dropAnimation={{
+            duration: 200,
+            easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
+          }}
+        >
           {activeTask ? (
-            <TaskCardContent
-              task={activeTask}
-              isOverlay
-              teamMembers={teamMembers}
-              currentUser={currentUser}
-              canDelete={permissions.canDelete(activeTask)}
-              canEdit={permissions.canEdit(activeTask)}
-            />
+            <div className="rotate-2 scale-105 opacity-90 shadow-2xl rounded-xl ring-2 ring-blue-500/30 cursor-grabbing">
+              <TaskCardContent
+                task={activeTask}
+                isOverlay
+                teamMembers={teamMembers}
+                currentUser={currentUser}
+                canDelete={permissions.canDelete(activeTask)}
+                canEdit={permissions.canEdit(activeTask)}
+              />
+            </div>
           ) : null}
         </DragOverlay>
       </DndContext>

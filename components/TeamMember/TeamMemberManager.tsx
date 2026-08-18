@@ -111,9 +111,9 @@ export function TeamMemberManager({
               key={member.id}
               member={member}
               canManage={canManage}
+              isCurrentUserOwner={isOwner}
               onSelectToDelete={canManage ? setMemberToDelete : undefined}
               onRoleChange={canManage ? handleChangeRole : undefined}
-              currentUserRole={isOwner}
             />
           ))}
         </ul>
@@ -121,9 +121,9 @@ export function TeamMemberManager({
 
       <LeaveTeamButton
         onLeaveTeam={onLeaveTeam}
-        isMemberOfTeam={isMemberOfTeam}
+        isMember={isMemberOfTeam}
+        isOwner={isOwner}
       />
-
       {canManage && (
         <ConfirmDeleteModal
           member={memberToDelete}

@@ -390,7 +390,7 @@ export default function TaskPageClient() {
             <TeamMemberManager
               members={members}
               teamId={teamId}
-              canManage={permissions.role === "OWNER"}
+              canManage={permissions.isAdminOrOwner}
               isOwner={permissions.role === "OWNER"}
               isMemberOfTeam={Boolean(permissions.role)}
               onLeaveTeam={handleLeaveTeam}

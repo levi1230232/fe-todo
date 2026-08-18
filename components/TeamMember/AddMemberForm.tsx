@@ -27,7 +27,7 @@ export function AddMemberForm({
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanEmail = email.trim();
+    const cleanEmail = email.trim().toLowerCase();
 
     if (!cleanEmail || !cleanEmail.includes("@")) {
       setSearchError("Please enter a valid email address.");
@@ -58,10 +58,10 @@ export function AddMemberForm({
         }
       }
     } catch (error: any) {
-      setSearchError(
-        "An error occurred while searching. Please try again later.",
-      );
-      toast.error(searchError);
+      const errorMessage =
+        error?.response?.data?.message ||
+        "An error occurred while searching. Please try again later.";
+      setSearchError(errorMessage);
     } finally {
       setIsSearching(false);
     }
@@ -75,7 +75,8 @@ export function AddMemberForm({
       await onAddMember(foundUser);
       onCancel();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message);
+      const errorMsg = error?.response?.data?.message || "Failed to add member";
+      toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -117,7 +118,7 @@ export function AddMemberForm({
         <button
           type="submit"
           disabled={isSearching || isSubmitting || !email.trim()}
-          className="px-3 py-1.5 text-xs bg-slate-800 text-white rounded hover:bg-slate-700 disabled:opacity-50 flex items-center gap-1 shrink-0 font-medium"
+          className="px-3 py-1.5 text-xs bg-slate-800 text-white rounded hover:bg-slate-700 disabled:opacity-50 flex items-center gap-1 shrink-0 font-medium cursor-pointer"
         >
           {isSearching ? (
             <Loader2 size={12} className="animate-spin" />
@@ -155,7 +156,7 @@ export function AddMemberForm({
             type="button"
             onClick={handleConfirmAdd}
             disabled={isSubmitting}
-            className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1 shrink-0 font-medium"
+            className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1 shrink-0 font-medium cursor-pointer"
           >
             {isSubmitting && <Loader2 size={12} className="animate-spin" />}
             Add
@@ -167,7 +168,7 @@ export function AddMemberForm({
         <button
           type="button"
           onClick={onCancel}
-          className="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 rounded transition"
+          className="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 rounded transition cursor-pointer"
           disabled={isSubmitting || isSearching}
         >
           Close

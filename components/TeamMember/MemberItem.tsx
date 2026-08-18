@@ -2,13 +2,14 @@
 
 import { TeamMember } from "@/types/team";
 import { Crown, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+
 export type MemberRole = "OWNER" | "ADMIN" | "MEMBER";
 
 interface MemberItemProps {
   member: TeamMember;
   onSelectToDelete?: (member: TeamMember) => void;
   onRoleChange?: (member: TeamMember, newRole: MemberRole) => void;
-  currentUserRole?: MemberRole | boolean;
+  isCurrentUserOwner?: boolean;
   canManage: boolean;
 }
 
@@ -16,15 +17,12 @@ export function MemberItem({
   member,
   onSelectToDelete,
   onRoleChange,
-  currentUserRole,
+  isCurrentUserOwner = false,
   canManage,
 }: MemberItemProps) {
   const isOwner = member.role === "OWNER";
   const isAdmin = member.role === "ADMIN";
   const isRegularMember = member.role === "MEMBER";
-
-  const isCurrentUserOwner =
-    currentUserRole === "OWNER" || currentUserRole === true;
 
   const displayName = member.user?.name || member.user?.email || "User";
   const initialLetter = displayName.charAt(0).toUpperCase();
@@ -80,7 +78,7 @@ export function MemberItem({
               <button
                 onClick={() => onRoleChange?.(member, "ADMIN")}
                 className="rounded-md p-2 text-indigo-600 transition hover:bg-indigo-50"
-                title="Promotion to Admin"
+                title="Promote to Admin"
               >
                 <ArrowUp size={15} />
               </button>
@@ -96,11 +94,11 @@ export function MemberItem({
               </button>
             )}
 
-            {isAdmin && (
+            {isAdmin && isCurrentUserOwner && (
               <button
                 onClick={() => onRoleChange?.(member, "MEMBER")}
                 className="rounded-md p-2 text-slate-600 transition hover:bg-slate-100"
-                title="Demote Member"
+                title="Demote to Member"
               >
                 <ArrowDown size={15} />
               </button>

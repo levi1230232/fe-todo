@@ -124,7 +124,7 @@ export default function KanbanBoard({
 
   const handleFormSubmit = async (formData: CreateTaskDto) => {
     const {
-      tagIds,
+      tagIds = [],
       assignedTo,
       reminder,
       workspaceStyle: formWorkspaceStyle,
@@ -146,19 +146,37 @@ export default function KanbanBoard({
           reminder: numericReminder,
           assignedTo: assignedTo ?? null,
         };
-
         await updateTaskMutation.mutateAsync({
           id: editingTask.id,
           dto: updatePayload,
         });
+        const currentTagIds = (editingTask.taskTags || [])
+          .map(({ tag }) => Number(tag.id))
+          .filter((id) => !isNaN(id));
 
-        if (tagIds !== undefined) {
+        const nextTagIds = (tagIds || [])
+          .map(Number)
+          .filter((id) => !isNaN(id));
+
+        const tagsToAdd = nextTagIds.filter(
+          (id) => !currentTagIds.includes(id),
+        );
+        const tagsToRemove = currentTagIds.filter(
+          (id) => !nextTagIds.includes(id),
+        );
+        if (tagsToRemove.length > 0) {
+          await Promise.all(
+            tagsToRemove.map((tagId) =>
+              removeTagMutation.mutateAsync({ taskId: editingTask.id, tagId }),
+            ),
+          );
+        }
+        if (tagsToAdd.length > 0) {
           await addTagsMutation.mutateAsync({
             taskId: editingTask.id,
-            tagIds,
+            tagIds: tagsToAdd,
           });
         }
-
         if (
           assignedTo !== undefined &&
           assignedTo !== editingTask.assignedTo &&

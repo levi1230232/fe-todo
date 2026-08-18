@@ -12,17 +12,18 @@ interface AuthGuardProps {
 export default function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
   const accessToken = useAuthStore((state) => state.accessToken);
+  const hasHydrated = useAuthStore((state) => state._hasHydrated);
   const { data: user, isLoading, isError } = useUser();
 
-  const isUnauthorized = !accessToken || isError;
+  const isUnauthorized = hasHydrated && (!accessToken || isError);
 
   useEffect(() => {
-    if (isUnauthorized && !isLoading) {
+    if (hasHydrated && isUnauthorized && !isLoading) {
       router.replace("/login");
     }
-  }, [isUnauthorized, isLoading, router]);
+  }, [hasHydrated, isUnauthorized, isLoading, router]);
 
-  if (isLoading || isUnauthorized) {
+  if (!hasHydrated || isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-sm text-slate-500">Authenticating...</p>
@@ -30,7 +31,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  if (!user) {
+  if (isUnauthorized || !user) {
     return null;
   }
 

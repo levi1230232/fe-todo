@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Task } from "@/types/task";
 import { User } from "@/types/auth";
-import { TeamMember } from "@/components/task/kanban/types";
+import { TeamMember } from "@/types/team";
 
 export function useTeamPermission(
   currentUser: User | null | undefined,

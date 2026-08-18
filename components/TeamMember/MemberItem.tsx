@@ -1,8 +1,7 @@
 "use client";
 
+import { TeamMember } from "@/types/team";
 import { Crown, Trash2, ArrowUp, ArrowDown } from "lucide-react";
-import { TeamMember } from "./TeamMemberManager";
-
 export type MemberRole = "OWNER" | "ADMIN" | "MEMBER";
 
 interface MemberItemProps {

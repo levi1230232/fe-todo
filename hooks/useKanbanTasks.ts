@@ -19,8 +19,8 @@ import {
   filterTasks,
   groupTasksByStatus,
 } from "@/lib/taskFilters";
-import { TeamMember } from "@/components/task/kanban/types";
 import { User } from "@/types/auth";
+import { TeamMember } from "@/types/team";
 
 export function useKanbanTasks(teamId: number | null, filters?: FilterState) {
   const searchParams = useSearchParams();

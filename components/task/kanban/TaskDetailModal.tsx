@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { Task, Priority, Tag } from "@/types/task";
-import { TeamMember } from "./types";
 import { TaskCommentSection } from "./TaskCommentSection";
 import { User } from "@/types/auth";
+import { TeamMember } from "@/types/team";
 
 interface TaskDetailModalProps {
   task: Task | null;

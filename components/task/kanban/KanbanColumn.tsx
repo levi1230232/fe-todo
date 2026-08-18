@@ -8,8 +8,8 @@ import {
 } from "@dnd-kit/sortable";
 import { Task, TaskStatus } from "@/types/task";
 import { SortableTaskCard } from "./SortableTaskCard";
-import { TeamMember } from "./types";
 import { User } from "@/types/auth";
+import { TeamMember } from "@/types/team";
 
 interface KanbanColumnProps {
   column: {

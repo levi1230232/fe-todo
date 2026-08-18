@@ -4,12 +4,12 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Task, TaskStatus, Priority } from "@/types/task";
 import { Calendar, Trash2, UserCheck, Check, X, User } from "lucide-react";
-import { TeamMember } from "./types";
 import { useSearchParams } from "next/navigation";
 import { useChangeTaskDeadline, useAssignTask } from "@/hooks/useTask";
 import { User as IUser } from "@/types/auth";
 import { format, isValid } from "date-fns";
 import { vi } from "date-fns/locale";
+import { TeamMember } from "@/types/team";
 
 export interface TaskCardContentProps {
   task: Task & {

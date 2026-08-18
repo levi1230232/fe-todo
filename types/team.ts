@@ -8,5 +8,5 @@ export interface TeamMember {
   id: number;
   joinAt: Date;
   role: "OWNER" | "ADMIN" | "MEMBER" | string;
-  user: { id: string; name: string; email: string };
+  user: { id: number; name: string; email: string };
 }

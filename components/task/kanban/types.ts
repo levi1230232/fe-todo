@@ -6,13 +6,6 @@ export interface KanbanBoardProps {
   filters?: FilterState;
 }
 
-export interface TeamMember {
-  id: number;
-  role: string;
-  joinAt: Date;
-  user: { id: number; name: string; email: string };
-}
-
 export const COLUMNS: {
   id: TaskStatus;
   title: string;

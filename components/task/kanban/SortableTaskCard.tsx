@@ -5,8 +5,8 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Task, TaskStatus } from "@/types/task";
 import { TaskCardContent } from "./TaskCardContent";
-import { TeamMember } from "./types";
 import { User } from "@/types/auth";
+import { TeamMember } from "@/types/team";
 
 interface SortableTaskCardProps {
   task: Task;

@@ -7,13 +7,7 @@ import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 import { AddMemberForm } from "./AddMemberForm";
 import { LeaveTeamButton } from "./LeaveTeamButton";
 import { toast } from "sonner";
-
-export interface TeamMember {
-  id: number;
-  joinAt: Date;
-  role: "OWNER" | "ADMIN" | "MEMBER" | string;
-  user: { id: string; name: string; email: string };
-}
+import { TeamMember } from "@/types/team";
 
 export interface SearchedUser {
   id: string | number;
@@ -36,7 +30,6 @@ interface TeamMemberManagerProps {
 }
 
 export function TeamMemberManager({
-  teamId,
   members = [],
   isLoading = false,
   canManage = false,
@@ -57,7 +50,7 @@ export function TeamMemberManager({
 
     try {
       setIsDeleting(true);
-      await onRemoveMember(parseInt(memberToDelete.user.id));
+      await onRemoveMember(memberToDelete.user.id);
       setMemberToDelete(null);
     } catch (error: any) {
       toast.error(error?.response?.data?.message);

@@ -1,7 +1,6 @@
 "use client";
 
 import { Loader2, AlertTriangle } from "lucide-react";
-import { TeamMember } from "./TeamMemberManager";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +9,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { TeamMember } from "@/types/team";
 
 interface ConfirmDeleteModalProps {
   member: TeamMember | null;

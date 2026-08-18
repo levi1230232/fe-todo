@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { Search, Loader2, CheckCircle2, AlertCircle, X } from "lucide-react";
-import { SearchedUser, TeamMember } from "./TeamMemberManager";
+import { SearchedUser } from "./TeamMemberManager";
 import { toast } from "sonner";
+import { TeamMember } from "@/types/team";
 
 interface AddMemberFormProps {
   members: TeamMember[];

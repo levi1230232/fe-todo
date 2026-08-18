@@ -131,7 +131,6 @@ export default function TaskPageClient() {
     if (hasTeam && hasCategory) return `${teamName} • ${categoryName}`;
     if (hasTeam) return teamName;
     if (hasCategory) return categoryName;
-    // return "Công Việc Cá Nhân";
   };
 
   const handleLeaveTeam = async () => {

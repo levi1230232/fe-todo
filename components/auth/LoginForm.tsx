@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { loginSchema, LoginSchema } from "@/schemas/auth.schema";
-import { useLogin } from "@/hooks/useAuth"; // Import hook TanStack Query
+import { useLogin } from "@/hooks/useAuth";
 import { Eye, EyeOff } from "lucide-react";
 
 import {

@@ -107,7 +107,6 @@ export function MemberItem({
               </button>
             )}
 
-            {/* Delete */}
             {!isOwner && onSelectToDelete && (
               <button
                 onClick={() => onSelectToDelete(member)}

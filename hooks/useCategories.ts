@@ -41,7 +41,6 @@ export function useCategories() {
     mutationFn: ({ id, data }: { id: number; data: CategoryOutput }) =>
       categoryService.updateCategory(id, data),
     onSuccess: (_, variables) => {
-      // Invalidate danh sách & cache chi tiết của item vừa cập nhật
       queryClient.invalidateQueries({ queryKey: CATEGORY_KEYS.lists() });
       queryClient.invalidateQueries({
         queryKey: CATEGORY_KEYS.detail(variables.id),

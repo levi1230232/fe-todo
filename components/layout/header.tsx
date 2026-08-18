@@ -2,13 +2,12 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, User, Settings, ChevronDown, Menu } from "lucide-react";
+import { LogOut, User, ChevronDown, Menu } from "lucide-react";
 import { useUser, useLogout } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { NotificationPopover } from "@/components/notification/NotificationPopover";
 import { Notification } from "@/components/notification/NotificationItem";
 import { NotificationDetailModal } from "@/components/notification/NotificationDetailModal";
-import { SidebarTrigger } from "../ui/sidebar";
 
 interface HeaderProps {
   onOpenMobile?: () => void;
@@ -127,18 +126,6 @@ export default function Header({ onOpenMobile }: HeaderProps) {
                     <User className="h-4 w-4" />
                     <span>Profile</span>
                   </button>
-
-                  {/* <button
-                    type="button"
-                    onClick={() => {
-                      setIsDropdownOpen(false);
-                      router.push("/dashboard/settings");
-                    }}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-indigo-600"
-                  >
-                    <Settings className="h-4 w-4" />
-                    <span>Settings</span>
-                  </button> */}
                 </div>
 
                 <div className="border-t border-slate-100 pt-1">

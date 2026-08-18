@@ -63,9 +63,6 @@ async function refreshAccessToken(): Promise<string | null> {
         error?.response?.data?.message ||
         error?.message ||
         "Refresh token failed";
-
-      // console.error("[Socket] Refresh failed:", message);
-
       return null;
     } finally {
       refreshPromise = null;
@@ -114,18 +111,12 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     setSocket(socketInstance);
 
     const handleConnect = () => {
-      // console.log("[Socket] ✅ Connected:", socketInstance.id);
-
       setIsConnected(true);
-
       queryClient.invalidateQueries({
         queryKey: ["notifications"],
       });
     };
-
     const handleDisconnect = (reason: string) => {
-      // console.warn("[Socket] 🔌 Disconnected:", reason);
-
       setIsConnected(false);
     };
 
@@ -134,11 +125,6 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
         data?: any;
       },
     ) => {
-      // console.warn("[Socket] ❌ Connect error:", {
-      //   message: error.message,
-      //   data: error.data,
-      // });
-
       setIsConnected(false);
 
       const message = (
@@ -165,19 +151,11 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
       refreshingRef.current = true;
 
       try {
-        // console.log("[Socket] 🔄 Refreshing access token...");
-
         const newAccessToken = await refreshAccessToken();
-
         if (!newAccessToken) {
-          // console.warn("[Socket] ❌ Refresh failed. Disconnecting.");
-
           socketInstance.disconnect();
           return;
         }
-
-        // console.log("[Socket] 🔑 Token refreshed. Reconnecting...");
-
         socketInstance.auth = {
           token: `Bearer ${newAccessToken}`,
         };
@@ -189,8 +167,6 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const handleNotification = (notification: Notification) => {
-      // console.log("[Socket] 🔔 Notification:", notification);
-
       queryClient.invalidateQueries({
         queryKey: ["notifications"],
       });
@@ -212,8 +188,6 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       if (!currentSocket.connected) {
-        // console.log("[Socket] 🔄 Reconnecting after tab/focus/online...");
-
         currentSocket.connect();
       }
     };
@@ -225,8 +199,6 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const handleOnline = () => {
-      // console.log("[Socket] 🌐 Browser online");
-
       reconnectIfNeeded();
     };
 
@@ -272,7 +244,6 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     const socketInstance = socketRef.current;
 
     if (!socketInstance || !socketInstance.connected) {
-      // console.warn(`[Socket] Cannot emit "${event}". Socket is not connected.`);
       return;
     }
 

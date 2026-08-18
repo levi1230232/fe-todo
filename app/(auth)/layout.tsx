@@ -43,20 +43,7 @@ export default function AuthLayout({
           to-blue-100
         "
       >
-        {/* <div
-          className="
-            w-full max-w-md
-            rounded-2xl
-            bg-white/80
-            backdrop-blur-xl
-            shadow-xl
-            border
-            border-blue-100
-            p-8
-          "
-        > */}
         {children}
-        {/* </div> */}
       </section>
     </main>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Task, Priority, Tag } from "@/types/task";
 import { TeamMember } from "./types";
 import { TaskCommentSection } from "./TaskCommentSection";

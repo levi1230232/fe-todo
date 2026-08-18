@@ -14,8 +14,8 @@ import {
   WorkspaceStyle,
   CreateTaskDto,
 } from "@/types/task";
-import { TeamMember } from "./types";
 import { CreateTaskInput, createTaskSchema } from "@/schemas/task.schema";
+import { TeamMember } from "@/types/team";
 
 interface TaskFormModalProps {
   isOpen: boolean;

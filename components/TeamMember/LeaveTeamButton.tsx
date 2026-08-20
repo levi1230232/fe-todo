@@ -26,7 +26,6 @@ export function LeaveTeamButton({
   const [isOpen, setIsOpen] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
 
-  // Không phải thành viên hoặc không có handler thì ẩn
   if (!isMember || !onLeaveTeam) {
     return null;
   }
@@ -37,7 +36,6 @@ export function LeaveTeamButton({
       await onLeaveTeam();
       setIsOpen(false);
     } catch {
-      // Error toast đã được xử lý ở handler cha
     } finally {
       setIsLeaving(false);
     }
